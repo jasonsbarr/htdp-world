@@ -47,4 +47,37 @@ const forEachK = (a, f, f_error, k) => {
   return forEachHelp(0);
 };
 
+// WORLD STUFFS
+
+class InitialWorld {}
+
+let world = new InitialWorld();
+let worldListenersStack = [];
+let eventDetachersStack = [];
+let worldIndexStack = [];
+let runningBigBangs = [];
+
+let worldIndex = null;
+let worldListeners = null;
+let eventDetachers = null;
+let changingWorld = [];
+
+const clearRunningState = () => {
+  worldIndexStack = [];
+  worldIndex = null;
+  world = new InitialWorld();
+  worldListenersStack = [];
+  worldListeners = null;
+
+  eventDetachersStack.forEach((eventDetachers) => {
+    eventDetachers.forEach((eventDetatcher) => {
+      eventDetatcher();
+    });
+  });
+
+  eventDetachersStack = [];
+  eventDetachers = null;
+  changingWorld = [];
+};
+
 export const shutdown = (options) => {};
