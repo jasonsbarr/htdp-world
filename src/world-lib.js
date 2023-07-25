@@ -1,3 +1,7 @@
+import { makeDocument } from "@jasonsbarr/htdp-image";
+
+const document = makeDocument();
+
 let _worldIndex = 0;
 
 const getNewWorldIndex = () => {
@@ -497,4 +501,35 @@ const doRedraw = (
       });
     });
   }
+};
+
+class FocusedSelection {
+  constructor() {
+    this.focused = currentFocusedNode;
+    this.selectionStart = currentFocusedNode.selectionStart;
+    this.selectionEnd = currentFocusedNode.selectionEnd;
+  }
+
+  restore() {
+    if (this.focused.parentNode) {
+      this.focused.selectionStart = this.selectionStart;
+      this.focused.selectionEnd = this.selectionEnd;
+      this.focused.focus();
+    } else if (this.focused.id) {
+      const matching = document.getElementById(this.focused.id);
+      if (matching) {
+        matching.selectionStart = this.selectionStart;
+        matching.selectionEnd = this.selectionEnd;
+        matching.focus();
+      }
+    }
+  }
+}
+
+const hasCurrentFocusedSelection = () => {
+  return currentFocusedNode !== undefined;
+};
+
+const getCurrentFocusedSelection = () => {
+  return new FocusedSelection();
 };
