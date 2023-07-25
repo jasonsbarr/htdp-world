@@ -355,10 +355,60 @@ const isMemq = (x, L) => {
 /**
  * If any node cares about the world, send it in.
  */
-const refreshNodeValue = (nodes) => {
+const refreshNodeValues = (nodes) => {
   for (let node of nodes) {
     if (node.onWorldChange) {
       node.onWorldChange(world);
     }
   }
+};
+
+/**
+ * update_dom(nodes(Node), relations(Node)) = void
+ */
+const updateDOM = (toplevelNode, nodes, relations) => {
+  // move all children to their proper parents
+  for (let rel of relations) {
+    if (rel.relation === "parent") {
+      const parent = rel.parent;
+      const child = rel.child;
+
+      if (!nodeEq(child.parentNode, parent)) {
+        parent.appendChild(child);
+      }
+    }
+  }
+
+  // arrange siblings in proper order
+  // yes, this really is bubble sort
+  let unsorted = true;
+  while (unsorted) {
+    unsorted = false;
+    for (rel of relations) {
+      if (rel.relation === "neighbor") {
+        const left = rel.left;
+        const right = rel.right;
+
+        if (!nodeEq(left.nextSibling, right)) {
+          left.parentNode.insertBefore(left, right);
+          unsorted = true;
+        }
+      }
+    }
+  }
+
+  // Finally, remove nodes that shouldn't be attached anymore.
+  const nodesPlus = nodes.concat([toplevelNode]);
+
+  preorder(toplevelNode, (aNode, continueTraversalDown) => {
+    if (aNode.jsworldOpaque) {
+      if (!isMemq(aNode, nodesPlus)) {
+        aNode.parentNode.removeChild(aNode);
+      }
+    } else {
+      continueTraversalDown();
+    }
+  });
+
+  refreshNodeValues(nodes);
 };
