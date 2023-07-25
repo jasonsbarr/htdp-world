@@ -683,4 +683,41 @@ export const bigBang = (
   }, doNothing);
 };
 
+/**
+ * onTick: number CPS(world -> world) -> handler
+ */
+export const onTick = (delay, tick) => {
+  return (thisWorldIndex) => {
+    const ticker = {
+      watchId: -1,
+      onRegister(top) {
+        scheduleTick(delay);
+      },
+      onUnregister(top) {
+        if (ticker.watchId) {
+          clearTimeout(ticker.watchId);
+        }
+      },
+    };
+
+    const scheduleTick = (t) => {
+      ticker.watchId = setTimeout(() => {
+        if (thisWorldIndex !== worldIndex) {
+          return;
+        }
+
+        ticker.watchId = undefined;
+        const startTime = Date.now();
+
+        changeWorld(tick, () => {
+          const endTime = Date.now();
+          scheduleTick(Math.max(delay - (endTime - startTime), 0));
+        });
+      }, t);
+    };
+
+    return ticker;
+  };
+};
+
 class StopWhenHandler {}
