@@ -418,3 +418,22 @@ const updateDOM = (toplevelNode, nodes, relations) => {
  * Converts lisp-case to camelCase
  */
 const camelCase = (name) => name.replace(/\-(.)/g, (_, l) => l.toUpperCase());
+
+const setCSSAttribs = (node, attribs) => {
+  for (let attrib of attribs) {
+    node.style[camelCase(attrib.attrib)] = attrib.values.join(" ");
+  }
+};
+
+/**
+ * isMatchingCssSelector: node css -> boolean
+ * Returns true if the CSS selector matches.
+ */
+const isMatchingCSSSelector = (node, css) => {
+  if (css.id.match(/^\./)) {
+    // Check to see if we match the class
+    return (
+      node.className && member(node.className.split(/\s+/), css.id.substring(1))
+    );
+  }
+};
