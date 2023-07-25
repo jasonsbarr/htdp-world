@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "@jasonsbarr/htdp-image": "^0.7.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
   }
 }
