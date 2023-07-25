@@ -40,7 +40,8 @@ const forEachK = (a, f, f_error, k) => {
     try {
       return f(a[i], () => forEachHelp(i + 1));
     } catch (e) {
-      return shutdown({ errorShutdown: f_error(e) });
+      f_error(e);
+      return shutdown({ errorShutdown: e });
     }
   };
 
@@ -164,5 +165,55 @@ const removeWorldListener = (listener) => {
 
   if (index !== -1) {
     worldListeners.splice(index, 1);
+  }
+};
+
+// If we're in the middle of a change_world, delay.
+const DELAY_BEFORE_RETRY = 10;
+
+// change_world: CPS( CPS(world -> world) -> void )
+// Adjust the world, and notify all listeners.
+export const changeWorld = (updater, k) => {
+  // Check to see if we're in the middle of changing
+  // the world already.  If so, put on the queue
+  // and exit quickly.
+  if (changingWorld[changingWorld.length - 1]) {
+    setTimeout(() => {
+      changeWorld(updater, k);
+    }, DELAY_BEFORE_RETRY);
+
+    return;
+  }
+
+  changingWorld[changingWorld.length - 1] = true;
+
+  const originalWorld = world;
+  const changeWorldHelp = () => {
+    forEachK(
+      worldListeners,
+      (listener, k2) => {
+        listener(world, originalWorld, k2);
+      },
+      (e) => {
+        changingWorld[changingWorld.length - 1] = false;
+        world = originalWorld;
+        throw e;
+      },
+      () => {
+        changingWorld[changingWorld.length - 1] = false;
+        k();
+      },
+    );
+  };
+
+  try {
+    updater(world, (newWorld) => {
+      world = newWorld;
+      changeWorldHelp();
+    });
+  } catch (e) {
+    changingWorld[changingWorld.length - 1] = false;
+    world = originalWorld;
+    return shutdown({ errorShutdown: e });
   }
 };
