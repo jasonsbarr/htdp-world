@@ -720,4 +720,36 @@ export const onTick = (delay, tick) => {
   };
 };
 
+export const onKey = (press) => {
+  return (thisWorldIndex) => {
+    const wrappedPress = (e) => {
+      if (thisWorldIndex !== worldIndex) {
+        return;
+      }
+
+      if (e.keyCode === 27) {
+        // Escape events are handled by the environment, not the world
+        return;
+      }
+
+      stopPropagation(e);
+      preventDefault(e);
+      changeWorld((w, k) => {
+        press(w, e, k);
+      }, doNothing);
+    };
+
+    return {
+      onRegister(top) {
+        top.tabIndex = 1;
+        top.focus();
+        attachEvent(top, "keydown", wrappedPress);
+      },
+      onUnregister(top) {
+        detachEvent(top, "keydown", wrappedPress);
+      },
+    };
+  };
+};
+
 class StopWhenHandler {}
