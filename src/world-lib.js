@@ -80,4 +80,89 @@ const clearRunningState = () => {
   changingWorld = [];
 };
 
-export const shutdown = (options) => {};
+const resumeRunningState = () => {
+  worldIndexStack.pop();
+
+  if (worldIndexStack.length > 0) {
+    world = runningBigBangs[runningBigBangs.length - 1];
+  } else {
+    world = new InitialWorld();
+  }
+
+  eventDetachersStack.pop().forEach((eventDetacher) => {
+    eventDetacher();
+  });
+
+  if (eventDetachersStack.length > 0) {
+    eventDetachers = eventDetachersStack[eventDetachersStack.length - 1];
+  } else {
+    eventDetachers = null;
+  }
+
+  changingWorld.pop();
+
+  if (runningBigBangs.length > 0) {
+    runningBigBangs[runningBigBangs.length - 1].restart();
+  }
+};
+
+/**
+ * @typedef {{cleanShutdown: boolean}|{errorShutdown: any}} ShutdownOptions
+ */
+/**
+ * Close all world computations
+ * @param {ShutdownOptions} options
+ */
+export const shutdown = (options) => {
+  while (runningBigBangs.length > 0) {
+    let currentRecord = runningBigBangs.pop();
+
+    currentRecord.pause();
+
+    if (options.cleanShutdown) {
+      currentRecord.success(world);
+    }
+
+    if (options.errorShutdown) {
+      currentRecord.fail(options.errorShutdown);
+    }
+  }
+
+  clearRunningState();
+};
+
+/**
+ * Closes the most recent world computation
+ * @param {ShutdownOptions} options
+ */
+export const shutdownSingle = (options) => {
+  if (runningBigBangs.length > 0) {
+    let currentRecord = runningBigBangs.pop();
+
+    currentRecord.pause();
+
+    if (options.cleanShutdown) {
+      currentRecord.success(world);
+    }
+
+    if (options.errorShutdown) {
+      currentRecord.fail(options.errorShutdown);
+    }
+  }
+};
+
+const addWorldListener = (listener) => {
+  if (worldListeners === null) {
+    worldListeners = [];
+  }
+
+  worldListeners.push(listener);
+};
+
+const removeWorldListener = (listener) => {
+  const index = worldListeners.findIndex((l) => l === listener);
+
+  if (index !== -1) {
+    worldListeners.splice(index, 1);
+  }
+};
