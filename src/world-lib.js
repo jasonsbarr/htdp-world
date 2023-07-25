@@ -533,3 +533,17 @@ const hasCurrentFocusedSelection = () => {
 const getCurrentFocusedSelection = () => {
   return new FocusedSelection();
 };
+
+const maintainingSelection = (f, k) => {
+  if (hasCurrentFocusedSelection()) {
+    const currentFocusedSelection = getCurrentFocusedSelection();
+    f(() => {
+      currentFocusedSelection.restore();
+      k();
+    });
+  } else {
+    f(() => {
+      k();
+    });
+  }
+};
