@@ -412,3 +412,9 @@ const updateDOM = (toplevelNode, nodes, relations) => {
 
   refreshNodeValues(nodes);
 };
+
+/**
+ * camelCase: string -> string
+ * Converts lisp-case to camelCase
+ */
+const camelCase = (name) => name.replace(/\-(.)/g, (_, l) => l.toUpperCase());
