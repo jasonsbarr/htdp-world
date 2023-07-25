@@ -321,3 +321,24 @@ const relations = (tree) => {
 
   return ret;
 };
+
+/**
+ * Preorder traversal
+ */
+const preorder = (node, f) => {
+  f(node, () => {
+    let child = node.firstChild;
+    let nextSibling;
+
+    while (child) {
+      nextSibling = child.nextSibling;
+      preorder(child, f);
+      child = nextSibling;
+    }
+  });
+};
+
+/**
+ * nodeEq: node node -> boolean
+ * Returns true if the two nodes should be the same.
+ */
