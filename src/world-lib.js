@@ -48,7 +48,9 @@ const forEachK = (a, f, f_error, k) => {
   return forEachHelp(0);
 };
 
+//
 // WORLD STUFFS
+//
 
 class InitialWorld {}
 
@@ -216,4 +218,61 @@ export const changeWorld = (updater, k) => {
     world = originalWorld;
     return shutdown({ errorShutdown: e });
   }
+};
+
+/**
+ * Maps the values of an array to output values
+ * @param {Array} a
+ * @param {Function} f
+ */
+const map = (a, f) => {
+  return a.map(f);
+};
+
+/**
+ * Maps and concatenates
+ *
+ * Is this the same as a.flatMap(f, 1)?
+ * @param {Array} a
+ * @param {Function} f
+ */
+const concatMap = (a, f) => {
+  let b = [];
+
+  for (let item of a) {
+    b = b.concat(f(item));
+  }
+
+  return b;
+};
+
+const member = (a, x) => {
+  return !!a.find((item) => item === x);
+};
+
+//
+// DOM UPDATING STUFFS
+//
+
+// tree(N): { node: N, children: [tree(N)] }
+// relation(N): { relation: 'parent', parent: N, child: N } | { relation: 'neighbor', left: N, right: N }
+// relations(N): [relation(N)]
+// nodes(N): [N]
+// css(N): [css_node(N)]
+// css_node(N): { node: N, attribs: attribs } | { className: string, attribs: attribs }
+// attrib: { attrib: string, values: [string] }
+// attribs: [attrib]
+const nodeToTree = (domNode) => {
+  let result = [domNode];
+  let c = domNode.firstChild;
+
+  if (c === undefined) {
+    return result;
+  }
+
+  for (c = domNode.firstChild; c != null; c = c.nextSibling) {
+    result.push(nodeToTree(c));
+  }
+
+  return result;
 };
