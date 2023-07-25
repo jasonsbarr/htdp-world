@@ -343,3 +343,22 @@ const preorder = (node, f) => {
  * Returns true if the two nodes should be the same.
  */
 const nodeEq = (node1, node2) => node1 && node2 && node1 === node2;
+
+/**
+ * isMemq: X (arrayof X) -> boolean
+ * Produces true if any of the elements of L are nodeEq to x.
+ */
+const isMemq = (x, L) => {
+  return !!L.find((n) => nodeEq(x, n));
+};
+
+/**
+ * If any node cares about the world, send it in.
+ */
+const refreshNodeValue = (nodes) => {
+  for (let node of nodes) {
+    if (node.onWorldChange) {
+      node.onWorldChange(world);
+    }
+  }
+};
