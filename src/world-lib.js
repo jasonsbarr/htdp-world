@@ -437,3 +437,64 @@ const isMatchingCSSSelector = (node, css) => {
     );
   }
 };
+
+// according to note in original, we shouldn't be clearing CSS
+const clearCSS = doNothing;
+
+const updateCSS = (nodes, css) => {
+  for (let node of nodes) {
+    // right now this does nothing
+    if (!node.jsworldOpaque) {
+      clearCSS(node);
+    }
+  }
+
+  // set CSS
+  for (let c of css) {
+    if (c.id) {
+      for (let node of nodes) {
+        if (isMatchingCSSSelector(node, c)) {
+          setCSSAttribs(node, c.attribs);
+        }
+      }
+    } else {
+      setCSSAttribs(c.node, c.attribs);
+    }
+  }
+};
+
+const doRedraw = (
+  world,
+  oldWorld,
+  toplevelNode,
+  redrawFunc,
+  redrawCSSFunc,
+  k,
+) => {
+  if (oldWorld instanceof InitialWorld) {
+    // simple path
+    redrawFunc(world, (drawn) => {
+      const t = sexp2tree(drawn);
+      const ns = nodes(t);
+
+      redrawCSSFunc(world, (css) => {
+        updateCSS(ns, sexp2css(css));
+        updateDOM(toplevelNode, ns, relations(t));
+        k();
+      });
+    });
+  } else {
+    maintainingSelection((k2) => {
+      redrawFunc(world, (newRedraw) => {
+        redrawCSSFunc((newRedrawCss) => {
+          const t = sexp2tree(newRedraw);
+          const ns = nodes(t);
+          // Try to save the current selection and preserve it across DOM updates
+          updateCSS(ns, sexp2css(newRedrawCss));
+          updateDOM(toplevelNode, ns, relations(t));
+          k2();
+        });
+      });
+    });
+  }
+};
