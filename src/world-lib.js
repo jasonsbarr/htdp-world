@@ -290,8 +290,33 @@ const nodes = (tree) => {
 
   let ret = [tree.node];
 
-  for (let node of tree.children) {
-    ret = ret.concat(nodes(node));
+  for (let child of tree.children) {
+    ret = ret.concat(nodes(child));
+  }
+
+  return ret;
+};
+
+// relations(tree(N)) = relations(N)
+const relations = (tree) => {
+  let ret = [];
+
+  for (let child of tree.children) {
+    ret.push({ relation: "parent", parent: tree.node, child: child.node });
+  }
+
+  for (let i = 0; i < tree.children.length - 1; i++) {
+    ret.push({
+      relation: "neighbor",
+      left: tree.children[i].node,
+      right: tree.children[i + 1].node,
+    });
+  }
+
+  if (!tree.node.jsworldOpaque) {
+    for (let child of tree.children) {
+      ret = ret.concat(relations(child));
+    }
   }
 
   return ret;
