@@ -2,7 +2,7 @@ let _worldIndex = 0;
 
 const getNewWorldIndex = () => {
   return ++_worldIndex;
-}
+};
 
 // These contents are adapted from Chris King's JSWorld as revised by Ethan Cechetti in summer 2010
 
@@ -19,6 +19,14 @@ export const doNothing = () => {};
 // Iterates through an array and applies f to each element using CPS
 // If an error is thrown, it catches the error and calls f_error on it
 
+/**
+ * Executes a function on each item in an array, CPS
+ * @param {Array} a
+ * @param {Function} f
+ * @param {Function} f_error
+ * @param {Function} k
+ * @returns {any}
+ */
 const forEachK = (a, f, f_error, k) => {
   const forEachHelp = (i) => {
     if (i >= a.length) {
@@ -32,9 +40,11 @@ const forEachK = (a, f, f_error, k) => {
     try {
       return f(a[i], () => forEachHelp(i + 1));
     } catch (e) {
-      return shutdown({errorShutdown: e});
+      return shutdown({ errorShutdown: f_error(e) });
     }
-  }
-}
+  };
+
+  return forEachHelp(0);
+};
 
 export const shutdown = (options) => {};
