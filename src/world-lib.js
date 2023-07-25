@@ -342,3 +342,4 @@ const preorder = (node, f) => {
  * nodeEq: node node -> boolean
  * Returns true if the two nodes should be the same.
  */
+const nodeEq = (node1, node2) => node1 && node2 && node1 === node2;
