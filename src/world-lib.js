@@ -262,7 +262,12 @@ const member = (a, x) => {
 // css_node(N): { node: N, attribs: attribs } | { className: string, attribs: attribs }
 // attrib: { attrib: string, values: [string] }
 // attribs: [attrib]
-const nodeToTree = (domNode) => {
+
+/**
+ * node_to_tree: dom -> dom-tree
+ * Given a native dom node, produces the appropriate tree.
+ */
+export const nodeToTree = (domNode) => {
   let result = [domNode];
   let c = domNode.firstChild;
 
@@ -275,4 +280,19 @@ const nodeToTree = (domNode) => {
   }
 
   return result;
+};
+
+// nodes(tree(N)) = nodes(N)
+const nodes = (tree) => {
+  if (tree.node?.jsworldOpaque === true) {
+    return [tree.node];
+  }
+
+  let ret = [tree.node];
+
+  for (let node of tree.children) {
+    ret = ret.concat(nodes(node));
+  }
+
+  return ret;
 };
