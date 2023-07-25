@@ -547,3 +547,140 @@ const maintainingSelection = (f, k) => {
     });
   }
 };
+
+//////////////////////////////////////////////////////////////////////
+
+class BigBangRecord {
+  constructor(top, world, handlerCreators, handlers, attribs, success, fail) {
+    this.top = top;
+    this.world = world;
+    this.handlers = handlers;
+    this.handlerCreators = handlerCreators;
+    this.attribs = attribs;
+    this.success = success;
+    this.fail = fail;
+  }
+
+  pause() {
+    for (let handler of this.handlers) {
+      if (!(handler instanceof StopWhenHandler)) {
+        handler.onUnregister(this.top);
+      }
+    }
+  }
+
+  restart() {
+    for (let handler of handlers) {
+      if (!(handler instanceof StopWhenHandler)) {
+        handler.onRegister(this.top);
+      }
+    }
+  }
+}
+
+// Notes: bigBang maintains a stack of activation records; it should be possible
+// to call bigBang re-entrantly.
+// top: dom
+// init_world: any
+// handlerCreators: (Arrayof (-> handler))
+// k: any -> void
+
+export const bigBang = (
+  top,
+  initWorld,
+  handlerCreators,
+  attribs,
+  succ,
+  fail,
+  extras,
+) => {
+  let thisWorldIndex = getNewWorldIndex();
+  worldIndexStack.push(thisWorldIndex);
+  worldIndex = thisWorldIndex;
+
+  // Construct a fresh set of the handlers
+  const handlers = map(handlerCreators, (x) => x(thisWorldIndex));
+
+  if (runningBigBangs.length > 0) {
+    runningBigBangs[runningBigBangs.length - 1].pause();
+  }
+
+  changingWorld.push(false);
+  worldListeners = [];
+  worldListenersStack.push(worldListeners);
+  eventDetachers = [];
+  eventDetachersStack.push(eventDetachers);
+
+  // Create an activation record for this big bang
+  const activationRecord = new BigBangRecord(
+    top,
+    initWorld,
+    handlerCreators,
+    handlers,
+    attribs,
+    succ,
+    fail,
+  );
+
+  runningBigBangs.push(activationRecord);
+
+  const keepRecordUpToDate = (w, oldW, k2) => {
+    activationRecord.world = w;
+    k2();
+  };
+
+  addWorldListener(keepRecordUpToDate);
+
+  if (typeof extras.tracer === "function") {
+    addWorldListener(extras.tracer);
+  }
+
+  // Monitor for termination and register the other handlers
+  let stopWhen = new StopWhenHandler(
+    (w, k2) => {
+      k2(false);
+    },
+    (w, k2) => {
+      k2(w);
+    },
+  );
+
+  for (let handler of handlers) {
+    if (handler instanceof StopWhenHandler) {
+      stopWhen = handler;
+    }
+  }
+
+  activationRecord.restart();
+
+  const watchForTermination = (w, oldW, k2) => {
+    if (thisWorldIndex !== worldIndex) {
+      return;
+    }
+    stopWhen.test(w, (stop) => {
+      if (!stop) {
+        k2();
+      } else {
+        if (extras.closeWhenStop) {
+          if (extras.closeBigBangWindow) {
+            extras.closeBigBangWindow();
+          }
+
+          shutdownSingle({ cleanShutdown: true });
+        } else {
+          activationRecord.pause();
+        }
+      }
+    });
+  };
+
+  addWorldListener(watchForTermination);
+
+  // Finally, begin the big-bang
+  copyAttribs(top, attribs);
+  changeWorld((w, k2) => {
+    k2(initWorld);
+  }, doNothing);
+};
+
+class StopWhenHandler {}
