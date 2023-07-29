@@ -852,4 +852,21 @@ export const onDraw = (redraw, redrawCSS) => {
   };
 };
 
-class StopWhenHandler {}
+class StopWhenHandler {
+  constructor(test, receiver) {
+    this.test = test;
+    this.receiver = receiver;
+  }
+}
+
+export const stopWhen = (test, receiver = null) => {
+  return () => {
+    if (!receiver) {
+      receiver = (w, k) => {
+        k(w);
+      };
+    }
+
+    return new StopWhenHandler(test, receiver);
+  };
+};
