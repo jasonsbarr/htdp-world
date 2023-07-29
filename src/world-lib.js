@@ -891,3 +891,23 @@ export const onWorldChange = (f) => {
     };
   };
 };
+
+// Compatibility for attaching events to nodes
+// Not sure we need to maintain IE compatibility in 2023, but oh well
+const attachEvent = (node, eventName, fn) => {
+  if (node.addEventListener) {
+    node.addEventListener(eventName, fn, false);
+  } else {
+    // IE
+    node.attachEvent("on" + eventName, fn, false);
+  }
+};
+
+const detachEvent = (node, eventName, fn) => {
+  if (node.removeEventListener) {
+    node.removeEventListener(eventName, fn, false);
+  } else {
+    // IE
+    node.detachEvent("on" + eventName, fn, false);
+  }
+};
