@@ -752,4 +752,73 @@ export const onKey = (press) => {
   };
 };
 
+// http://www.quirksmode.org/js/events_mouse.html
+// http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
+export const onMouse = (mouse) => {
+  return (thisWorldIndex) => {
+    let isButtonDown = false;
+
+    const makeWrapped = (type) => {
+      return (e) => {
+        if (thisWorldIndex !== worldIndex) {
+          return;
+        }
+
+        preventDefault(e);
+        stopPropagation(e);
+
+        let x = e.pageX;
+        let y = e.pageY;
+        let currentElement = e.target;
+
+        do {
+          x -= currentElement.offsetLeft;
+          y -= currentElement.offsetTop;
+          currentElement = currentElement.offsetParent;
+        } while (currentElement);
+
+        if (type === "button-down") {
+          isButtonDown = true;
+        } else if (type === "button-up") {
+          isButtonDown = false;
+        }
+
+        if (type === "move" && isButtonDown) {
+          changeWorld((w, k) => {
+            mouse(w, x, y, "drag", k);
+          }, doNothing);
+        } else {
+          changeWorld((w, k) => {
+            mouse(w, x, y, type, k);
+          }, doNothing);
+        }
+      };
+    };
+
+    const wrappedDown = makeWrapped("button-down");
+    const wrappedUp = makeWrapped("button-up");
+    // How do we do drag?
+    const wrappedMove = makeWrapped("move");
+    const wrappedEnter = makeWrapped("enter");
+    const wrappedLeave = makeWrapped("leave");
+
+    return {
+      onRegister(top) {
+        attachEvent(top, "mousedown", wrappedDown);
+        attachEvent(top, "mouseup", wrappedUp);
+        attachEvent(top, "mousemove", wrappedMove);
+        attachEvent(top, "mouseenter", wrappedEnter);
+        attachEvent(top, "mouseleave", wrappedLeave);
+      },
+      onUnregister(top) {
+        detachEvent(top, "mousedown", wrappedDown);
+        detachEvent(top, "mouseup", wrappedUp);
+        detachEvent(top, "mousemove", wrappedMove);
+        detachEvent(top, "mouseenter", wrappedEnter);
+        detachEvent(top, "mouseleave", wrappedLeave);
+      },
+    };
+  };
+};
+
 class StopWhenHandler {}
