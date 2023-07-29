@@ -1131,6 +1131,55 @@ const input = (type, updateF, attribs) => {
   }
 };
 
-const textInput = () => {};
+const textInput = (type, updateF, attribs) => {
+  let n = document.createElement("input");
 
-const checkboxInput = () => {};
+  n.type = type;
+
+  let lastVal = n.value;
+  const onEvent = () => {
+    if (!n.parentNode) {
+      return;
+    }
+
+    setTimeout(() => {
+      if (lastVal !== n.value) {
+        lastVal = n.value;
+        changeWorld((w, k) => {
+          updateF(w, n.value, k);
+        }, doNothing);
+      }
+    }, 0);
+  };
+
+  attachEvent(n, "keydown", onEvent);
+  eventDetachers.push(() => {
+    detachEvent(n, "keydown", onEvent);
+  });
+
+  attachEvent(n, "change", onEvent);
+  eventDetachers.push(() => {
+    detachEvent(n, "change", onEvent);
+  });
+
+  return stopClickPropagation(addFocusTracking(copyAttribs(n, attribs)));
+};
+
+const checkboxInput = (type, updateF, attribs) => {
+  let n = document.createElement("input");
+
+  n.type = type;
+
+  const onCheck = (w, e, k) => {
+    updateF(w, n.checked, k);
+  };
+
+  // This establishes the widget->world direction
+  addEvAfter(n, "change", onCheck);
+
+  attachEvent(n, "click", (e) => {
+    stopPropagation(e);
+  });
+
+  return copyAttribs(n, attribs);
+};
