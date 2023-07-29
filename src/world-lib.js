@@ -1054,3 +1054,20 @@ const checkDOMSexp = (thing, topThing) => {
     );
   }
 };
+
+//
+// DOM CREATION STUFFS
+//
+const copyAttribs = (node, attribs) => {
+  if (attribs) {
+    for (let [k, v] of Object.entries(attribs)) {
+      if (typeof v === "function") {
+        adEv(node, k, v);
+      } else {
+        node[k] = v;
+      }
+    }
+  }
+
+  return node;
+};
