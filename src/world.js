@@ -116,6 +116,17 @@ class WorldConfigOption {
 
 const isWorldConfigOption = (v) => v instanceof WorldConfigOption;
 
+/**
+ * Takes a JavaScript function and converts it to the CPS style function
+ * WorldLib expects. Not sure how to do this since JS doesn't
+ * have support for continuations in any form.
+ */
+const adaptWorldFunction = (worldFunction) => {
+  return (...args) => {
+    worldFunction(...args);
+  };
+};
+
 class OutputConfig {}
 
 class DefaultDrawingOutput {}
