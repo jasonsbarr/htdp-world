@@ -15,7 +15,8 @@
   "module": "./dist/index.esm.js",
   "unpkg": "./dist/index.umd.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "microbundle --external jsdom"
   },
   "repository": {
     "type": "git",
