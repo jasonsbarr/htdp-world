@@ -1002,3 +1002,25 @@ const sexp2cssNode = (sexp) => {
 const sexp2css = (sexp) => {
   return concatMap(sexp, sexp2cssNode);
 };
+
+const isTextNode = (n) => n.nodeType === 3;
+
+const isElementNode = (n) => n.nodeType === 1;
+
+class JSWorldDOMError {
+  constructor(msg, elt) {
+    this.msg = msg;
+    this.elt = elt;
+  }
+
+  toString() {
+    return `JSWorldDOMError: ${this.msg}`;
+  }
+}
+
+const throwDOMError = (thing, topThing) => {
+  throw new JSWorldDOMError(
+    `Expected a non-empty array, received ${thing} within ${topThing}`,
+    thing,
+  );
+};
