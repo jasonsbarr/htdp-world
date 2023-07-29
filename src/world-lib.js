@@ -911,3 +911,48 @@ const detachEvent = (node, eventName, fn) => {
     node.detachEvent("on" + eventName, fn, false);
   }
 };
+
+//
+// DOM CREATION STUFFS
+//
+
+// add_ev: node string CPS(world event -> world) -> void
+// Attaches a world-updating handler when the world is changed.
+const adEv = (node, event, f) => {
+  const eventHandler = (e) => {
+    changeWorld((w, k) => {
+      f(w, e, k);
+    }, doNothing);
+  };
+
+  attachEvent(node, event, eventHandler);
+  eventDetachers.push(() => {
+    detachEvent(node, event, eventHandler);
+  });
+};
+
+// add_ev_after: node string CPS(world event -> world) -> void
+// Attaches a world-updating handler when the world is changed, but only
+// after the fired event has finished.
+const adEvAfter = (node, event, f) => {
+  const eventHandler = (e) => {
+    if (typeof setInterval === "undefined") {
+      setTimeout(() => {
+        changeWorld((w, k) => {
+          f(w, e, k);
+        }, doNothing);
+      }, 0);
+    } else {
+      setInterval(() => {
+        changeWorld((w, k) => {
+          f(w, e, k);
+        }, doNothing);
+      });
+    }
+  };
+
+  attachEvent(node, event, eventHandler);
+  eventDetachers.push(() => {
+    detachEvent(node, event, eventHandler);
+  });
+};
