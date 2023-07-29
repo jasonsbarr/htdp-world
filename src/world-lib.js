@@ -968,3 +968,37 @@ const addFocusTracking = (node) => {
 
   return node;
 };
+
+//
+// WORLD STUFFS
+//
+const sexp2tree = (sexp) => {
+  if (sexp.length === undefined) {
+    return { node: sexp, children: [] };
+  } else {
+    return {
+      node: sexp[0],
+      children: map(sexp.slice(1), sexp2tree),
+    };
+  }
+};
+
+const sexp2attrib = (sexp) => {
+  return { attrib: sexp[0], values: sexp.slice(1) };
+};
+
+const sexp2cssNode = (sexp) => {
+  const attribs = map(sexp.slice(1), sexp2attrib);
+
+  if (typeof sexp[0] === "string") {
+    return [{ id: sexp[0], attribs }];
+  } else if (sexp[0].length !== undefined) {
+    return map(sexp[0], (id) => ({ id, attribs }));
+  } else {
+    return [{ node: sexp[0], attribs }];
+  }
+};
+
+const sexp2css = (sexp) => {
+  return concatMap(sexp, sexp2cssNode);
+};
