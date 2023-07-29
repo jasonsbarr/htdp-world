@@ -17,8 +17,6 @@ export const bigBang = (init, dict, tracer) => {
     handlers.push(new constr(dict[k]));
   };
 
-  const title = dict.title ? dict.title : "Big Bang";
-
   if (dict.onTick) {
     const delay = dict.secondsPerTick
       ? dict.secondsPerTick
@@ -33,11 +31,11 @@ export const bigBang = (init, dict, tracer) => {
   add("stopWhen", StopWhen);
   add("closeWhenStop", CloseWhenStop);
 
-  return bigBangRaw(init, handlers, tracer, title);
+  return bigBangRaw(init, handlers, tracer);
 };
 
 // Corresponds to the bigBang function in the Pyret source, see above link
-export const bigBangRaw = (initW, handlers, tracer, title) => {
+export const bigBangRaw = (initW, handlers, tracer) => {
   let closeBigBangWindow = null;
   let outerTopLevelNode = document.createElement("span");
 
@@ -123,10 +121,10 @@ const isWorldConfigOption = (v) => v instanceof WorldConfigOption;
  */
 const adaptWorldFunction = (worldFunction) => {
   return (...args) => {
-    const success = () => args[args.length - 1];
+    const success = args[args.length - 1];
     const jsArgs = args.slice(0, -1);
-    worldFunction(...jsArgs);
-    success();
+    const world = worldFunction(...jsArgs);
+    success(world);
   };
 };
 
@@ -134,7 +132,19 @@ class OutputConfig {}
 
 class DefaultDrawingOutput {}
 
-class OnTick {}
+class OnTick extends WorldConfigOption {
+  constructor(handler, delay) {
+    this.handler = handler;
+    this.delay = delay;
+  }
+
+  toRawHandler(topLevelNode) {
+    const that = this;
+    const worldFunction = adaptWorldFunction(that.handler);
+
+    return WorldLib.onTick(this.delay, worldFunction);
+  }
+}
 
 class OnMouse {}
 
