@@ -123,7 +123,10 @@ const isWorldConfigOption = (v) => v instanceof WorldConfigOption;
  */
 const adaptWorldFunction = (worldFunction) => {
   return (...args) => {
-    worldFunction(...args);
+    const success = () => args[args.length - 1];
+    const jsArgs = args.slice(0, -1);
+    worldFunction(...jsArgs);
+    success();
   };
 };
 
