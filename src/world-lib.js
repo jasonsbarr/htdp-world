@@ -870,3 +870,24 @@ export const stopWhen = (test, receiver = null) => {
     return new StopWhenHandler(test, receiver);
   };
 };
+
+export const onWorldChange = (f) => {
+  return (thisWorldIndex) => {
+    const listener = (world, oldW, k) => {
+      if (thisWorldIndex !== worldIndex) {
+        return;
+      }
+
+      f(world, k);
+    };
+
+    return {
+      onRegister(top) {
+        addWorldListener(listener);
+      },
+      onUnregister(top) {
+        removeWorldListener(listener);
+      },
+    };
+  };
+};
