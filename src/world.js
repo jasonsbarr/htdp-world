@@ -1,7 +1,9 @@
 import { Lib } from "@jasonsbarr/htdp-image";
-import * as WorldLib from "./world-lib";
+import * as WorldLib from "./world-lib.js";
+import { makeDocument } from "./document.js";
 
 const DEFAULT_TICK_DELAY = 1 / 28;
+const document = makeDocument();
 
 // Corresponds to the bigBangFromDict function in the Pyret source
 // see https://github.com/brownplt/code.pyret.org/blob/horizon/src/web/js/trove/world.js
@@ -35,7 +37,63 @@ export const bigBang = (init, dict, tracer) => {
 };
 
 // Corresponds to the bigBang function in the Pyret source, see above link
-export const bigBangRaw = (initW, handlers, tracer, title) => {};
+export const bigBangRaw = (initW, handlers, tracer, title) => {
+  let closeBigBangWindow = null;
+  let outerTopLevelNode = document.createElement("span");
+
+  outerTopLevelNode.style.padding = "0px";
+  document.body.appendChild(outerTopLevelNode);
+
+  let topLevelNode = document.createElement("span");
+
+  topLevelNode.style.padding = "0px";
+  outerTopLevelNode.appendChild(topLevelNode);
+  topLevelNode.tabIndex = 1;
+  topLevelNode.focus();
+
+  let configs = [];
+  let isOutputConfigSeen = false;
+  let closeWhenStop = false;
+
+  for (let handler of handlers) {
+    if (handler instanceof CloseWhenStop) {
+      closeWhenStop = handler.isClose;
+    } else if (handler instanceof WorldConfigOption) {
+      configs.push(handler.toRawHandler(topLevelNode));
+    } else {
+      configs.push(handler);
+    }
+
+    if (handler instanceof OutputConfig) {
+      isOutputConfigSeen = true;
+    }
+  }
+
+  if (!isOutputConfigSeen) {
+    configs.push(new DefaultDrawingOutput().toRawHandler(topLevelNode));
+  }
+
+  return WorldLib.bigBang(
+    topLevelNode,
+    initW,
+    configs,
+    {},
+    // figure out what to do with these success and failure functions
+    (finalWorldValue) => finalWorldValue,
+    (err) => err,
+    {
+      closeWhenStop,
+      closeBigBangWindow,
+      tracer,
+    },
+  );
+};
+
+class WorldConfigOption {}
+
+class OutputConfig {}
+
+class DefaultDrawingOutput {}
 
 class OnTick {}
 

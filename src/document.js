@@ -28,6 +28,8 @@ export const makeDocument = () => {
 </html>`;
     let dom;
     if (jsdom.JSDOM === undefined) {
+      // this doesn't actually work the way I want it to because when
+      // it gets to the return statement document is still undefined
       let interval = setInterval(() => {
         if (jsdom.JSDOM) {
           dom = new jsdom.JSDOM(html);
