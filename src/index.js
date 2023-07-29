@@ -9,10 +9,7 @@ const document = makeDocument();
 
 // Corresponds to the bigBangFromDict function in the Pyret source
 // see https://github.com/brownplt/code.pyret.org/blob/horizon/src/web/js/trove/world.js
-// Jason: I'm doing it like this because it seems easier to have my beginning students
-// pass an object into the function instead of an array, which they won't have
-// seen yet the first time they encounter this function
-export const bigBang = (init, dict, tracer) => {
+export const bigBangFromDict = (init, dict, tracer) => {
   let handlers = [];
 
   const add = (k, constr) => {
@@ -36,8 +33,8 @@ export const bigBang = (init, dict, tracer) => {
   return bigBangRaw(init, handlers, tracer);
 };
 
-// Corresponds to the bigBang function in the Pyret source, see above link
-export const bigBangRaw = (initW, handlers, tracer) => {
+// See above link
+export const bigBang = (initW, handlers, tracer) => {
   let closeBigBangWindow = null;
   let outerTopLevelNode = document.createElement("span");
 
