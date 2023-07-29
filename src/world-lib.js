@@ -1113,7 +1113,7 @@ const stopClickPropagation = (node) => {
   return node;
 };
 
-const input = (type, updateF, attribs) => {
+export const input = (type, updateF, attribs) => {
   type = type.toLowerCase();
 
   const dispatchTable = {
@@ -1182,4 +1182,12 @@ const checkboxInput = (type, updateF, attribs) => {
   });
 
   return copyAttribs(n, attribs);
+};
+
+export const text = (s, attribs) => {
+  let result = document.createElement("div");
+
+  result.appendChild(document.createTextNode(String(s)));
+  result.jsworldOpaque = true;
+  return result;
 };
