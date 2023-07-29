@@ -78,7 +78,9 @@ export const bigBangRaw = (initW, handlers, tracer) => {
     {},
     // figure out what to do with these success and failure functions
     (finalWorldValue) => finalWorldValue,
-    (err) => err,
+    (err) => {
+      throw err;
+    },
     {
       closeWhenStop,
       closeBigBangWindow,
@@ -123,8 +125,13 @@ const adaptWorldFunction = (worldFunction) => {
   return (...args) => {
     const success = args[args.length - 1];
     const jsArgs = args.slice(0, -1);
-    const world = worldFunction(...jsArgs);
-    success(world);
+
+    try {
+      const world = worldFunction(...jsArgs);
+      success(world);
+    } catch (e) {
+      WorldLib.shutdown({ errorShutdown: e });
+    }
   };
 };
 
