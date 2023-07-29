@@ -30,7 +30,7 @@ export const bigBangFromDict = (init, dict, tracer) => {
   add("stopWhen", StopWhen);
   add("closeWhenStop", CloseWhenStop);
 
-  return bigBangRaw(init, handlers, tracer);
+  return bigBang(init, handlers, tracer);
 };
 
 // See above link
