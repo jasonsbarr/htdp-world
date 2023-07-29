@@ -141,6 +141,7 @@ class DefaultDrawingOutput {}
 
 class OnTick extends WorldConfigOption {
   constructor(handler, delay) {
+    super("onTick");
     this.handler = handler;
     this.delay = delay;
   }
@@ -153,10 +154,25 @@ class OnTick extends WorldConfigOption {
   }
 }
 
-class OnMouse {}
-
-class OnKey {
+class OnMouse extends WorldConfigOption {
   constructor(handler) {
+    super("onMouse");
+    this.handler = handler;
+  }
+
+  toRawHandler(topLevelNode) {
+    const that = this;
+    const worldFunction = adaptWorldFunction(that.handler);
+
+    return WorldLib.onMouse((w, x, y, type, success) => {
+      worldFunction(w, x, y, type, success);
+    });
+  }
+}
+
+class OnKey extends WorldConfigOption {
+  constructor(handler) {
+    super("onKey");
     this.handler = handler;
   }
 
