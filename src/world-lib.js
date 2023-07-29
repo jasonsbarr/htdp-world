@@ -918,7 +918,7 @@ const detachEvent = (node, eventName, fn) => {
 
 // add_ev: node string CPS(world event -> world) -> void
 // Attaches a world-updating handler when the world is changed.
-const adEv = (node, event, f) => {
+const addEv = (node, event, f) => {
   const eventHandler = (e) => {
     changeWorld((w, k) => {
       f(w, e, k);
@@ -934,7 +934,7 @@ const adEv = (node, event, f) => {
 // add_ev_after: node string CPS(world event -> world) -> void
 // Attaches a world-updating handler when the world is changed, but only
 // after the fired event has finished.
-const adEvAfter = (node, event, f) => {
+const addEvAfter = (node, event, f) => {
   const eventHandler = (e) => {
     if (typeof setInterval === "undefined") {
       setTimeout(() => {
@@ -1062,7 +1062,7 @@ const copyAttribs = (node, attribs) => {
   if (attribs) {
     for (let [k, v] of Object.entries(attribs)) {
       if (typeof v === "function") {
-        adEv(node, k, v);
+        addEv(node, k, v);
       } else {
         node[k] = v;
       }
@@ -1070,4 +1070,21 @@ const copyAttribs = (node, attribs) => {
   }
 
   return node;
+};
+
+//
+// NODE TYPES
+//
+export const p = (attribs) =>
+  addFocusTracking(copyAttribs(document.createElement("p"), attribs));
+
+export const div = (attribs) =>
+  addFocusTracking(copyAttribs(document.createElement("div"), attribs));
+
+export const button = (f, attribs) => {
+  let n = document.createElement("button");
+
+  n.onclick = (e) => false;
+  addEv(n, "click", f);
+  return addFocusTracking(copyAttribs(n, attribs));
 };
