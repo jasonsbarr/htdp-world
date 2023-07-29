@@ -1024,3 +1024,33 @@ const throwDOMError = (thing, topThing) => {
     thing,
   );
 };
+
+const checkDOMSexp = (thing, topThing) => {
+  if (!Array.isArray(thing)) {
+    throwDOMError(thing, topThing);
+  }
+
+  if (thing.length === 0) {
+    throwDOMError(thing, topThing);
+  }
+
+  // Check that the first element is a Text or an element.
+  if (isTextNode(thing[0])) {
+    if (thing.length > 1) {
+      throw new JSWorldDOMError(
+        `Text node ${thing} cannot have children`,
+        thing,
+      );
+    }
+  } else if (isElementNode(thing[0])) {
+    for (let elt of thing.slice(1)) {
+      checkDOMSexp(elt, thing);
+    }
+  } else {
+    console.log(thing[0]);
+
+    throw new JSWorldDOMError(
+      `Expected a Text or an Element node, received ${thing} within ${topThing}`,
+    );
+  }
+};
