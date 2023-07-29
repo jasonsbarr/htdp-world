@@ -956,3 +956,15 @@ const adEvAfter = (node, event, f) => {
     detachEvent(node, event, eventHandler);
   });
 };
+
+const addFocusTracking = (node) => {
+  attachEvent(node, "focus", (e) => {
+    currentFocusedNode = node;
+  });
+
+  attachEvent(node, "blur", (e) => {
+    currentFocusedNode = undefined;
+  });
+
+  return node;
+};
