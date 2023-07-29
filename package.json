@@ -3,6 +3,10 @@
   "description": "A JavaScript port of the World reactive UI library from How To Design Programs, adapted from the [Pyret online IDE source code](https://github.com/brownplt/code.pyret.org).",
   "version": "0.1.0",
   "main": "index.js",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
