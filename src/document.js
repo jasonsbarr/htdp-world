@@ -14,6 +14,10 @@ let JSDOM = function () {};
   }
 })();
 
+/**
+ * Handle creating Document in Node environment
+ * @returns {Document}
+ */
 export const makeDocument = () => {
   let document;
   if (typeof window === "undefined") {
