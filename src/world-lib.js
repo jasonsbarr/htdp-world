@@ -821,4 +821,35 @@ export const onMouse = (mouse) => {
   };
 };
 
+export const onDraw = (redraw, redrawCSS) => {
+  const wrappedRedraw = (w, k) => {
+    redraw(w, (newDomTree) => {
+      checkDomSexp(newDomTree, newDomTree);
+      k(newDomTree);
+    });
+  };
+
+  return (thisWorldIndex) => {
+    const drawer = {
+      _top: null,
+      _listener(w, oldW, k2) {
+        if (thisWorldIndex !== worldIndex) {
+          return;
+        }
+
+        doRedraw(w, oldW, drawer._top, wrappedRedraw, redrawCSS, k2);
+      },
+      onRegister(top) {
+        drawer._top = top;
+        addWorldListener(drawer._listener);
+      },
+      onUnregister(top) {
+        removeWorldListener(drawer._listener);
+      },
+    };
+
+    return drawer;
+  };
+};
+
 class StopWhenHandler {}
