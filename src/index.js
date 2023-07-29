@@ -386,7 +386,7 @@ class ToDraw extends WorldConfigOption {
   }
 }
 
-class CloseWhenStop {
+class CloseWhenStop extends WorldConfigOption {
   /**
    * Constructor
    * @param {boolean} isClose
