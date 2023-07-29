@@ -9,6 +9,7 @@ const getNewWorldIndex = () => {
 };
 
 // These contents are adapted from Chris King's JSWorld as revised by Ethan Cechetti in summer 2010
+// Updated for ES2015+ syntax by Jason Barr in summer 2023
 
 /* Type signature notation
  * CPS(a b ... -> c) is used to denote
@@ -156,6 +157,8 @@ export const shutdownSingle = (options) => {
       currentRecord.fail(options.errorShutdown);
     }
   }
+
+  resumeRunningState();
 };
 
 const addWorldListener = (listener) => {
