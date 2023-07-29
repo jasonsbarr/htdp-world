@@ -88,7 +88,7 @@ export const bigBangRaw = (initW, handlers, tracer) => {
   );
 };
 
-class WorldConfigOption {
+export class WorldConfigOption {
   constructor(name) {
     this.name = name;
   }
@@ -113,14 +113,14 @@ class WorldConfigOption {
   }
 }
 
-const isWorldConfigOption = (v) => v instanceof WorldConfigOption;
+export const isWorldConfigOption = (v) => v instanceof WorldConfigOption;
 
 /**
  * Takes a JavaScript function and converts it to the CPS style function
  * WorldLib expects. Not sure how to do this since JS doesn't
  * have support for continuations in any form.
  */
-const adaptWorldFunction = (worldFunction) => {
+export const adaptWorldFunction = (worldFunction) => {
   return (...args) => {
     const success = args[args.length - 1];
     const jsArgs = args.slice(0, -1);
@@ -395,6 +395,47 @@ class ToDraw extends OutputConfig {
   }
 }
 
-class StopWhen {}
+class CloseWhenStop {
+  /**
+   * Constructor
+   * @param {boolean} isClose
+   */
+  constructor(isClose) {
+    super("closeWhenStop");
+    this.isClose = isClose;
+  }
+}
 
-class CloseWhenStop {}
+const isCloseWhenStopConfig = (v) => v instanceof CloseWhenStop;
+
+class StopWhen extends WorldConfigOption {
+  constructor(handler) {
+    super("stopWhen");
+    this.handler = handler;
+  }
+
+  toRawHandler(topLevelNode) {
+    const that = this;
+    const worldFunction = adaptWorldFunction(that.handler);
+
+    return WorldLib.stopWhen(worldFunction);
+  }
+}
+
+export const onTick = (handler) =>
+  new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000));
+
+export const onTickN = (handler, n) => new OnTick(handler, n * 1000);
+
+export const toDraw = (drawer) => new ToDraw(drawer);
+
+export const stopWhen = (stopper) => new StopWhen(stopper);
+
+export const closeWhenStop = (isClose) => new CloseWhenStop(isClose);
+
+export const onKey = (handler) => new OnKey(handler);
+
+export const onMouse = (handler) => new OnMouse(handler);
+
+export const isKeyEqual = (key1, key2) =>
+  key1.toLowerCase() === key2.toLowerCase();
