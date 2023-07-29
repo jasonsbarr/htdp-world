@@ -2,6 +2,8 @@ import { Lib } from "@jasonsbarr/htdp-image";
 import * as WorldLib from "./world-lib.js";
 import { makeDocument } from "./document.js";
 
+// This library has been adapted from the Pyret source code (see below)
+
 const DEFAULT_TICK_DELAY = 1 / 28;
 const document = makeDocument();
 
