@@ -1191,3 +1191,23 @@ export const text = (s, attribs) => {
   result.jsworldOpaque = true;
   return result;
 };
+
+const option = (attribs) => {
+  let node = document.createElement("option");
+
+  node.text = attribs.value;
+  node.value = attribs.value;
+  return node;
+};
+
+export const select = (attribs, opts, f) => {
+  let n = document.createElement("select");
+
+  for (let opt of opts) {
+    n.add(option({ value: opt }), null);
+  }
+
+  n.jsworldOpaque = true;
+  addEv(n, "change", f);
+  return addFocusTracking(copyAttribs(n, attribs));
+};
