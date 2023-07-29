@@ -1088,3 +1088,27 @@ export const button = (f, attribs) => {
   addEv(n, "click", f);
   return addFocusTracking(copyAttribs(n, attribs));
 };
+
+const preventDefault = (e) => {
+  if (e.preventDefault) {
+    e.preventDefault();
+  } else {
+    e.returnValue = false;
+  }
+};
+
+const stopPropagation = (e) => {
+  if (e.stopPropagation) {
+    e.stopPropagation();
+  } else {
+    e.cancelBubble = true;
+  }
+};
+
+const stopClickPropagation = (node) => {
+  attachEvent(node, "click", (e) => {
+    stopPropagation(e);
+  });
+
+  return node;
+};
