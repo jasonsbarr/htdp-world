@@ -1211,3 +1211,22 @@ export const select = (attribs, opts, f) => {
   addEv(n, "change", f);
   return addFocusTracking(copyAttribs(n, attribs));
 };
+
+export const textarea = (attribs) =>
+  addFocusTracking(copyAttribs(document.createElement("textarea"), attribs));
+
+export const h1 = (attribs) =>
+  addFocusTracking(copyAttribs(document.createElement("h1"), attribs));
+
+export const canvas = (attribs) =>
+  addFocusTracking(copyAttribs(document.createElement("canvas"), attribs));
+
+export const img = (src, attribs) => {
+  let n = document.createElement("img");
+
+  n.src = src;
+  return addFocusTracking(copyAttribs(n, attribs));
+};
+
+export const rawNode = (node, attribs) =>
+  addFocusTracking(copyAttribs(node, attribs));
