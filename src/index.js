@@ -406,8 +406,6 @@ class CloseWhenStop {
   }
 }
 
-const isCloseWhenStopConfig = (v) => v instanceof CloseWhenStop;
-
 class StopWhen extends WorldConfigOption {
   constructor(handler) {
     super("stopWhen");
