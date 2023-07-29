@@ -135,10 +135,6 @@ const adaptWorldFunction = (worldFunction) => {
   };
 };
 
-class OutputConfig {}
-
-class DefaultDrawingOutput {}
-
 class OnTick extends WorldConfigOption {
   constructor(handler, delay) {
     super("onTick");
@@ -312,7 +308,96 @@ const getKeyCodeName = (e) => {
   return keyname;
 };
 
-class ToDraw {}
+class OutputConfig extends WorldConfigOption {
+  constructor(name) {
+    super(name);
+  }
+}
+
+class ToDraw extends OutputConfig {
+  constructor(handler) {
+    super("toDraw");
+    this.handler = handler;
+  }
+
+  toRawHandler(topLevelNode) {
+    const that = this;
+    let reusableCanvas;
+    let reusableCanvasNode;
+    const adaptedWorldFunction = adaptWorldFunction(this.handler);
+
+    const worldFunction = (world, success) => {
+      adaptedWorldFunction(world, (image) => {
+        const drawImage = (image) => {
+          const width = image.width;
+          const height = image.height;
+
+          if (!reusableCanvas) {
+            reusableCanvas = Lib.makeCanvas(width, height);
+
+            // Note: the canvas object may itself manage objects,
+            // as in the case of an excanvas.  In that case, we must make
+            // sure jsworld doesn't try to disrupt its contents!
+            reusableCanvas.jsworldOpaque = true;
+            reusableCanvasNode = WorldLib.nodeToTree(reusableCanvas);
+
+            if (reusableCanvas.width !== width) {
+              reusableCanvas.width = width;
+            }
+
+            if (reusableCanvas.height !== height) {
+              reusableCanvas.height = height;
+            }
+
+            const ctx = reusableCanvas.getContext("2d");
+
+            ctx.save();
+            ctx.fillStyle = "rgba(255, 255, 255, 1)";
+            ctx.fillRect(0, 0, width, height);
+            ctx.restore();
+            image.render(ctx, 0, 0);
+            success([topLevelNode, reusableCanvasNode]);
+          }
+        };
+
+        if (image instanceof Lib.FileImage || image instanceof Lib.FileVideo) {
+          if (image.isLoaded) {
+            drawImage(image);
+            return;
+          }
+
+          let interval = setInterval(() => {
+            if (image.isLoaded) {
+              drawImage(image);
+              clearInterval(interval);
+            }
+          }, 100);
+        } else {
+          drawImage(image);
+        }
+      });
+    };
+
+    const cssFunction = (w, k) => {
+      if (reusableCanvas) {
+        k([
+          [
+            reusableCanvas,
+            ["padding", "0px"],
+            ["width", reusableCanvas.width + "px"],
+            ["height", reusableCanvas.height + "px"],
+          ],
+        ]);
+      } else {
+        k([]);
+      }
+    };
+
+    return WorldLib.onDraw(worldFunction, cssFunction);
+  }
+}
+
+class DefaultDrawingOutput {}
 
 class StopWhen {}
 
