@@ -50,7 +50,6 @@ export const bigBangRaw = (initW, handlers, tracer) => {
   topLevelNode.focus();
 
   let configs = [];
-  let isOutputConfigSeen = false;
   let closeWhenStop = false;
 
   for (let handler of handlers) {
