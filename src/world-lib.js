@@ -1112,3 +1112,25 @@ const stopClickPropagation = (node) => {
 
   return node;
 };
+
+const input = (type, updateF, attribs) => {
+  type = type.toLowerCase();
+
+  const dispatchTable = {
+    text: textInput,
+    password: textInput,
+    checkbox: checkboxInput,
+    // button: buttonInput,
+    // radio: radioInput
+  };
+
+  if (dispatchTable[type]) {
+    return dispatchTable[type](type, updateF, attribs);
+  } else {
+    throw new Error(`JS-Input: does not currently support type ${type}`);
+  }
+};
+
+const textInput = () => {};
+
+const checkboxInput = () => {};
