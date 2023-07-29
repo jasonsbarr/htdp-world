@@ -3,6 +3,7 @@
     "@jasonsbarr/htdp-image": "^0.7.0"
   },
   "devDependencies": {
+    "microbundle": "^0.15.1",
     "prettier": "^3.0.0"
   }
 }
