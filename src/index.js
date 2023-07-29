@@ -60,10 +60,6 @@ export const bigBangRaw = (initW, handlers, tracer) => {
     } else {
       configs.push(handler);
     }
-
-    if (handler instanceof OutputConfig) {
-      isOutputConfigSeen = true;
-    }
   }
 
   // The Pyret source has an option for a default toDraw handler here, but
