@@ -1,4 +1,4 @@
-import { makeDocument } from "@jasonsbarr/htdp-image";
+import { makeDocument } from "./document.js";
 
 const document = makeDocument();
 
