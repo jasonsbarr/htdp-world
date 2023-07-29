@@ -302,13 +302,7 @@ const getKeyCodeName = (e) => {
   return keyname;
 };
 
-class OutputConfig extends WorldConfigOption {
-  constructor(name) {
-    super(name);
-  }
-}
-
-class ToDraw extends OutputConfig {
+class ToDraw extends WorldConfigOption {
   constructor(handler) {
     super("toDraw");
     this.handler = handler;
