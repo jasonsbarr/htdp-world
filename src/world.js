@@ -67,9 +67,8 @@ export const bigBangRaw = (initW, handlers, tracer) => {
     }
   }
 
-  if (!isOutputConfigSeen) {
-    configs.push(new DefaultDrawingOutput().toRawHandler(topLevelNode));
-  }
+  // The Pyret source has an option for a default toDraw handler here, but
+  // we're going to make them explicitly provide a toDraw handler
 
   return WorldLib.bigBang(
     topLevelNode,
@@ -321,7 +320,6 @@ class ToDraw extends OutputConfig {
   }
 
   toRawHandler(topLevelNode) {
-    const that = this;
     let reusableCanvas;
     let reusableCanvasNode;
     const adaptedWorldFunction = adaptWorldFunction(this.handler);
@@ -396,8 +394,6 @@ class ToDraw extends OutputConfig {
     return WorldLib.onDraw(worldFunction, cssFunction);
   }
 }
-
-class DefaultDrawingOutput {}
 
 class StopWhen {}
 
