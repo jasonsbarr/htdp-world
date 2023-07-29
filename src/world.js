@@ -89,7 +89,32 @@ export const bigBangRaw = (initW, handlers, tracer, title) => {
   );
 };
 
-class WorldConfigOption {}
+class WorldConfigOption {
+  constructor(name) {
+    this.name = name;
+  }
+
+  configure(config) {
+    throw new Error("Unimplemented WorldConfigOption");
+  }
+
+  toDOMNode(params) {
+    let span = document.createElement("span");
+
+    span.append(document.createTextNode(`(${this.name} ...)`));
+    return span;
+  }
+
+  toDisplayedString(cache) {
+    return `(${this.name} ...)`;
+  }
+
+  toWrittenString(cache) {
+    return `(${this.name} ...)`;
+  }
+}
+
+const isWorldConfigOption = (v) => v instanceof WorldConfigOption;
 
 class OutputConfig {}
 
