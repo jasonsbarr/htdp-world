@@ -454,6 +454,10 @@ export const bigBang = (init, handlersDict) => {
       continue;
     }
 
+    if (!(k in handlerFunctions)) {
+      throw new Error(`${k} handler creator not found`);
+    }
+
     handlers.push(handlerFunctions[k](v));
   }
 
