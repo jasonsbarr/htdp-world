@@ -204,6 +204,7 @@ export const changeWorld = (updater, k) => {
         listener(world, originalWorld, k2);
       },
       (e) => {
+        console.log(e);
         changingWorld[changingWorld.length - 1] = false;
         world = originalWorld;
         throw e;
@@ -391,7 +392,7 @@ const updateDOM = (toplevelNode, nodes, relations) => {
   let unsorted = true;
   while (unsorted) {
     unsorted = false;
-    for (rel of relations) {
+    for (let rel of relations) {
       if (rel.relation === "neighbor") {
         const left = rel.left;
         const right = rel.right;
