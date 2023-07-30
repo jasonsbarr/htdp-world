@@ -502,7 +502,7 @@ const doRedraw = (
           k2();
         });
       });
-    });
+    }, doNothing);
   }
 };
 
