@@ -30,11 +30,12 @@ export const bigBangFromDict = (init, dict, tracer) => {
   add("stopWhen", StopWhen);
   add("closeWhenStop", CloseWhenStop);
 
-  return bigBang(init, handlers, tracer);
+  return bigBangRaw(init, handlers, tracer);
 };
 
+// Corresponds to bigBang in Pyret
 // See above link
-export const bigBang = (initW, handlers, tracer) => {
+export const bigBangRaw = (initW, handlers, tracer) => {
   let closeBigBangWindow = null;
   let outerTopLevelNode = document.createElement("span");
 
@@ -423,5 +424,38 @@ export const onKey = (handler) => new OnKey(handler);
 
 export const onMouse = (handler) => new OnMouse(handler);
 
+const handlerFunctions = {
+  onTick,
+  onTickN,
+  toDraw,
+  stopWhen,
+  closeWhenStop,
+  onKey,
+  onMouse,
+};
+
 export const isKeyEqual = (key1, key2) =>
   key1.toLowerCase() === key2.toLowerCase();
+
+// Eliminating the need for beginning users to actually call the handler creators
+export const bigBang = (init, handlersDict) => {
+  let handlers = [];
+
+  if (dict.onTick) {
+    const delay = dict.secondsPerTick
+      ? dict.secondsPerTick
+      : DEFAULT_TICK_DELAY;
+
+    handlers.push(new OnTick(dict.onTick, delay * 1000));
+  }
+
+  for (let [k, v] of handlersDict) {
+    if (k === "onTick" || k === "secondsPerTick") {
+      continue;
+    }
+
+    handlers.push(handlerFunctions[k](v));
+  }
+
+  return bigBangRaw(init, handlers, null);
+};
