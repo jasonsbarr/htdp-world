@@ -441,12 +441,12 @@ export const isKeyEqual = (key1, key2) =>
 export const bigBang = (init, handlersDict) => {
   let handlers = [];
 
-  if (dict.onTick) {
-    const delay = dict.secondsPerTick
-      ? dict.secondsPerTick
+  if (handlersDict.onTick) {
+    const delay = handlersDict.secondsPerTick
+      ? handlersDict.secondsPerTick
       : DEFAULT_TICK_DELAY;
 
-    handlers.push(new OnTick(dict.onTick, delay * 1000));
+    handlers.push(new OnTick(handlersDict.onTick, delay * 1000));
   }
 
   for (let [k, v] of handlersDict) {
