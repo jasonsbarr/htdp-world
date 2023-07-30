@@ -827,7 +827,7 @@ export const onMouse = (mouse) => {
 export const onDraw = (redraw, redrawCSS) => {
   const wrappedRedraw = (w, k) => {
     redraw(w, (newDomTree) => {
-      checkDomSexp(newDomTree, newDomTree);
+      checkDOMSexp(newDomTree, newDomTree);
       k(newDomTree);
     });
   };
