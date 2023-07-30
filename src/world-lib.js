@@ -565,6 +565,18 @@ class BigBangRecord {
     this.fail = fail;
   }
 
+  continue(newWorld) {
+    bigBang(
+      this.top,
+      newWorld,
+      this.handlerCreators,
+      this.attribs,
+      this.success,
+      this.fail,
+      {},
+    );
+  }
+
   pause() {
     for (let handler of this.handlers) {
       if (!(handler instanceof StopWhenHandler)) {
