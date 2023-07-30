@@ -449,7 +449,7 @@ export const bigBang = (init, handlersDict) => {
     handlers.push(new OnTick(handlersDict.onTick, delay * 1000));
   }
 
-  for (let [k, v] of handlersDict) {
+  for (let [k, v] of Object.entries(handlersDict)) {
     if (k === "onTick" || k === "secondsPerTick") {
       continue;
     }
