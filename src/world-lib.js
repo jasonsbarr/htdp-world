@@ -573,7 +573,7 @@ class BigBangRecord {
   }
 
   restart() {
-    for (let handler of handlers) {
+    for (let handler of this.handlers) {
       if (!(handler instanceof StopWhenHandler)) {
         handler.onRegister(this.top);
       }
