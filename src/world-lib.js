@@ -69,6 +69,7 @@ let worldIndex = null;
 let worldListeners = null;
 let eventDetachers = null;
 let changingWorld = [];
+let isShutdown = false;
 
 const clearRunningState = () => {
   worldIndexStack = [];
@@ -220,6 +221,11 @@ export const changeWorld = (updater, k) => {
     updater(world, (newWorld) => {
       world = newWorld;
       changeWorldHelp();
+
+      if (!isShutdown) {
+        const bb = runningBigBangs[runningBigBangs.length - 1];
+        bb.continue(world);
+      }
     });
   } catch (e) {
     changingWorld[changingWorld.length - 1] = false;
@@ -693,6 +699,7 @@ export const bigBang = (
             extras.closeBigBangWindow();
           }
 
+          isShutdown = true;
           shutdownSingle({ cleanShutdown: true });
         } else {
           activationRecord.pause();
