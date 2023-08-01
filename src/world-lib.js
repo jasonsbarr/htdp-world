@@ -582,15 +582,19 @@ class BigBangRecord {
   }
 
   continue(newWorld) {
-    bigBang(
-      this.top,
-      newWorld,
-      this.handlerCreators,
-      this.attribs,
-      this.success,
-      this.fail,
-      this.extras,
-    );
+    try {
+      bigBang(
+        this.top,
+        newWorld,
+        this.handlerCreators,
+        this.attribs,
+        this.success,
+        this.fail,
+        this.extras,
+      );
+    } catch (e) {
+      // will continue restarting as long as isShutdown is false
+    }
   }
 
   pause() {
