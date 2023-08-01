@@ -221,11 +221,6 @@ export const changeWorld = (updater, k) => {
     updater(world, (newWorld) => {
       world = newWorld;
       changeWorldHelp();
-
-      if (!isShutdown) {
-        const bb = runningBigBangs[runningBigBangs.length - 1];
-        bb.continue(world);
-      }
     });
   } catch (e) {
     changingWorld[changingWorld.length - 1] = false;
