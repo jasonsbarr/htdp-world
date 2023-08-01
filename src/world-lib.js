@@ -555,7 +555,16 @@ const maintainingSelection = (f, k) => {
 //////////////////////////////////////////////////////////////////////
 
 class BigBangRecord {
-  constructor(top, world, handlerCreators, handlers, attribs, success, fail) {
+  constructor(
+    top,
+    world,
+    handlerCreators,
+    handlers,
+    attribs,
+    success,
+    fail,
+    extras,
+  ) {
     this.top = top;
     this.world = world;
     this.handlers = handlers;
@@ -563,6 +572,7 @@ class BigBangRecord {
     this.attribs = attribs;
     this.success = success;
     this.fail = fail;
+    this.extras = extras;
   }
 
   continue(newWorld) {
@@ -573,7 +583,7 @@ class BigBangRecord {
       this.attribs,
       this.success,
       this.fail,
-      {},
+      this.extras,
     );
   }
 
@@ -636,6 +646,7 @@ export const bigBang = (
     attribs,
     succ,
     fail,
+    extras,
   );
 
   runningBigBangs.push(activationRecord);
