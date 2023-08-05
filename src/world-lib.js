@@ -1,39 +1,38 @@
-import { makeDocument } from "./document.js";
+var _worldIndex = 0;
 
-const document = makeDocument();
-
-let _worldIndex = 0;
-
-const getNewWorldIndex = () => {
-  return ++_worldIndex;
+var getNewWorldIndex = function () {
+  _worldIndex++;
+  return _worldIndex;
 };
 
-// These contents are adapted from Chris King's JSWorld as revised by Ethan Cechetti in summer 2010
-// Updated for ES2015+ syntax by Jason Barr in summer 2023
+var rawJsworld = {};
+
+// Stuff here is copy-and-pasted from Chris King's JSWorld.
+//
+// dyoo: as I remember, most of this code had been revised from
+// Chris's original code by Ethan Cechetti, who rewrote it to
+// continuation passing style during summer 2010.
+
+("use strict");
 
 /* Type signature notation
  * CPS(a b ... -> c) is used to denote
  *    a b ... (c -> void) -> void
  */
 
-let currentFocusedNode = false;
+var Jsworld = rawJsworld;
 
-export const doNothing = () => {};
+var currentFocusedNode = false;
+
+var doNothing = function () {};
+// Just in case external users need this and doNothing might change.
+Jsworld.doNothing = doNothing;
 
 // forEachK: CPS( array CPS(array -> void) (error -> void) -> void )
 // Iterates through an array and applies f to each element using CPS
 // If an error is thrown, it catches the error and calls f_error on it
-
-/**
- * Executes a function on each item in an array, CPS
- * @param {Array} a
- * @param {Function} f
- * @param {Function} f_error
- * @param {Function} k
- * @returns {any}
- */
-const forEachK = (a, f, f_error, k) => {
-  const forEachHelp = (i) => {
+var forEachK = function (a, f, f_error, k) {
+  var forEachHelp = function (i) {
     if (i >= a.length) {
       if (k) {
         return k();
@@ -41,15 +40,14 @@ const forEachK = (a, f, f_error, k) => {
         return;
       }
     }
-
     try {
-      return f(a[i], () => forEachHelp(i + 1));
+      return f(a[i], function () {
+        return forEachHelp(i + 1);
+      });
     } catch (e) {
-      f_error(e);
-      return shutdown({ errorShutdown: e });
+      return Jsworld.shutdown({ errorShutdown: e });
     }
   };
-
   return forEachHelp(0);
 };
 
@@ -57,160 +55,150 @@ const forEachK = (a, f, f_error, k) => {
 // WORLD STUFFS
 //
 
-class InitialWorld {}
+function InitialWorld() {}
 
-let world = new InitialWorld();
-let worldListenersStack = [];
-let eventDetachersStack = [];
-let worldIndexStack = [];
-let runningBigBangs = [];
+var world = new InitialWorld();
+var worldListenersStack = [];
+var eventDetachersStack = [];
+var worldIndexStack = [];
+var runningBigBangs = [];
 
-let worldIndex = null;
-let worldListeners = null;
-let eventDetachers = null;
-let changingWorld = [];
-let isShutdown = false;
+var worldIndex = null;
+var worldListeners = null;
+var eventDetachers = null;
+var changingWorld = [];
 
-const clearRunningState = () => {
+function clear_running_state() {
   worldIndexStack = [];
   worldIndex = null;
   world = new InitialWorld();
   worldListenersStack = [];
   worldListeners = null;
 
-  eventDetachersStack.forEach((eventDetachers) => {
-    eventDetachers.forEach((eventDetatcher) => {
-      eventDetatcher();
+  eventDetachersStack.forEach(function (eventDetachers) {
+    eventDetachers.forEach(function (eventDetacher) {
+      eventDetacher();
     });
   });
-
   eventDetachersStack = [];
   eventDetachers = null;
   changingWorld = [];
-};
+}
 
-const resumeRunningState = () => {
+function resume_running_state() {
   worldIndexStack.pop();
-
   if (worldIndexStack.length > 0) {
-    world = runningBigBangs[runningBigBangs.length - 1];
+    worldIndex = worldIndexStack[worldIndexStack.length - 1];
+  } else {
+    worldIndex = null;
+  }
+  if (runningBigBangs.length > 0) {
+    world = runningBigBangs[runningBigBangs.length - 1].world;
   } else {
     world = new InitialWorld();
   }
+  worldListenersStack.pop();
+  if (worldListenersStack.length > 0) {
+    worldListeners = worldListenersStack[worldListenersStack.length - 1];
+  } else {
+    worldListeners = null;
+  }
 
-  eventDetachersStack.pop().forEach((eventDetacher) => {
+  eventDetachersStack.pop().forEach(function (eventDetacher) {
     eventDetacher();
   });
-
   if (eventDetachersStack.length > 0) {
     eventDetachers = eventDetachersStack[eventDetachersStack.length - 1];
   } else {
     eventDetachers = null;
   }
-
   changingWorld.pop();
 
   if (runningBigBangs.length > 0) {
     runningBigBangs[runningBigBangs.length - 1].restart();
   }
-};
+}
 
-/**
- * @typedef {{cleanShutdown: boolean}|{errorShutdown: any}} ShutdownOptions
- */
-/**
- * Close all world computations
- * @param {ShutdownOptions} options
- */
-export const shutdown = (options) => {
+// Close all world computations.
+Jsworld.shutdown = function (options) {
   while (runningBigBangs.length > 0) {
-    let currentRecord = runningBigBangs.pop();
-
+    var currentRecord = runningBigBangs.pop();
     currentRecord.pause();
-
     if (options.cleanShutdown) {
       currentRecord.success(world);
     }
-
     if (options.errorShutdown) {
       currentRecord.fail(options.errorShutdown);
     }
   }
-
-  clearRunningState();
+  clear_running_state();
 };
 
-/**
- * Closes the most recent world computation
- * @param {ShutdownOptions} options
- */
-export const shutdownSingle = (options) => {
+// Closes the most recent world computation.
+Jsworld.shutdownSingle = function (options) {
   if (runningBigBangs.length > 0) {
-    let currentRecord = runningBigBangs.pop();
-
+    var currentRecord = runningBigBangs.pop();
     currentRecord.pause();
-
     if (options.cleanShutdown) {
       currentRecord.success(world);
     }
-
     if (options.errorShutdown) {
       currentRecord.fail(options.errorShutdown);
     }
   }
-
-  resumeRunningState();
+  resume_running_state();
 };
 
-const addWorldListener = (listener) => {
-  if (worldListeners === null) {
-    worldListeners = [];
-  }
-
+function add_world_listener(listener) {
   worldListeners.push(listener);
-};
+}
 
-const removeWorldListener = (listener) => {
-  const index = worldListeners.findIndex((l) => l === listener);
-
+function remove_world_listener(listener) {
+  var i,
+    index = -1;
+  for (i = 0; i < worldListeners.length; i++) {
+    if (worldListeners[i] === listener) {
+      index = i;
+      break;
+    }
+  }
   if (index !== -1) {
     worldListeners.splice(index, 1);
   }
-};
+}
 
 // If we're in the middle of a change_world, delay.
-const DELAY_BEFORE_RETRY = 10;
+var DELAY_BEFORE_RETRY = 10;
 
 // change_world: CPS( CPS(world -> world) -> void )
 // Adjust the world, and notify all listeners.
-export const changeWorld = (updater, k) => {
+var change_world = function (updater, k) {
   // Check to see if we're in the middle of changing
   // the world already.  If so, put on the queue
   // and exit quickly.
   if (changingWorld[changingWorld.length - 1]) {
-    setTimeout(() => {
-      changeWorld(updater, k);
+    setTimeout(function () {
+      change_world(updater, k);
     }, DELAY_BEFORE_RETRY);
-
     return;
   }
 
   changingWorld[changingWorld.length - 1] = true;
+  var originalWorld = world;
 
-  const originalWorld = world;
-  const changeWorldHelp = () => {
+  var changeWorldHelp;
+  changeWorldHelp = function () {
     forEachK(
       worldListeners,
-      (listener, k2) => {
+      function (listener, k2) {
         listener(world, originalWorld, k2);
       },
-      (e) => {
-        console.log(e);
+      function (e) {
         changingWorld[changingWorld.length - 1] = false;
         world = originalWorld;
         throw e;
       },
-      () => {
+      function () {
         changingWorld[changingWorld.length - 1] = false;
         k();
       },
@@ -218,46 +206,45 @@ export const changeWorld = (updater, k) => {
   };
 
   try {
-    updater(world, (newWorld) => {
+    updater(world, function (newWorld) {
       world = newWorld;
       changeWorldHelp();
     });
   } catch (e) {
     changingWorld[changingWorld.length - 1] = false;
     world = originalWorld;
-    return shutdown({ errorShutdown: e });
+    return Jsworld.shutdown({ errorShutdown: e });
   }
 };
+Jsworld.change_world = change_world;
 
-/**
- * Maps the values of an array to output values
- * @param {Array} a
- * @param {Function} f
- */
-const map = (a, f) => {
-  return a.map(f);
-};
-
-/**
- * Maps and concatenates
- *
- * Is this the same as a.flatMap(f, 1)?
- * @param {Array} a
- * @param {Function} f
- */
-const concatMap = (a, f) => {
-  let b = [];
-
-  for (let item of a) {
-    b = b.concat(f(item));
+var map = function (a1, f) {
+  var b = new Array(a1.length),
+    i;
+  for (i = 0; i < a1.length; i++) {
+    b[i] = f(a1[i]);
   }
-
   return b;
 };
 
-const member = (a, x) => {
-  return !!a.find((item) => item === x);
+var concat_map = function (a, f) {
+  var b = [],
+    i;
+  for (i = 0; i < a.length; i++) {
+    b = b.concat(f(a[i]));
+  }
+  return b;
 };
+
+function member(a, x) {
+  var i;
+  for (i = 0; i < a.length; i++) {
+    if (a[i] === x) {
+      return true;
+    }
+  }
+  return false;
+}
 
 //
 // DOM UPDATING STUFFS
@@ -272,49 +259,94 @@ const member = (a, x) => {
 // attrib: { attrib: string, values: [string] }
 // attribs: [attrib]
 
-/**
- * node_to_tree: dom -> dom-tree
- * Given a native dom node, produces the appropriate tree.
- */
-export const nodeToTree = (domNode) => {
-  let result = [domNode];
-  let c = domNode.firstChild;
+// treeable(nodes(N), relations(N)) = bool
+/*function treeable(nodes, relations) {
+    // for all neighbor relations between x and y
+    for (var i = 0; i < relations.length; i++)
+    if (relations[i].relation == 'neighbor') {
+    var x = relations[i].left, y = relations[i].right;
 
+    // there does not exist a neighbor relation between x and z!=y or z!=x and y
+    for (var j = 0; j < relations.length; j++)
+    if (relations[j].relation === 'neighbor')
+    if (relations[j].left === x && relations[j].right !== y ||
+    relations[j].left !== x && relations[j].right === y)
+    return false;
+    }
+
+    // for all parent relations between x and y
+    for (var i = 0; i < relations.length; i++)
+    if (relations[i].relation == 'parent') {
+    var x = relations[i].parent, y = relations[i].child;
+
+    // there does not exist a parent relation between z!=x and y
+    for (var j = 0; j < relations.length; j++)
+    if (relations[j].relation == 'parent')
+    if (relations[j].parent !== x && relations[j].child === y)
+    return false;
+    }
+
+    // for all neighbor relations between x and y
+    for (var i = 0; i < relations.length; i++)
+    if (relations[i].relation == 'neighbor') {
+    var x = relations[i].left, y = relations[i].right;
+
+    // all parent relations between z and x or y share the same z
+    for (var j = 0; j < relations.length; j++)
+    if (relations[j].relation == 'parent')
+    for (var k = 0; k < relations.length; k++)
+    if (relations[k].relation == 'parent')
+    if (relations[j].child === x && relations[k].child === y &&
+    relations[j].parent !== relations[k].parent)
+    return false;
+    }
+
+    return true;
+    }*/
+
+// node_to_tree: dom -> dom-tree
+// Given a native dom node, produces the appropriate tree.
+function node_to_tree(domNode) {
+  var result = [domNode],
+    c = domNode.firstChild;
   if (c === undefined) {
     return result;
+  } else {
+    for (c = domNode.firstChild; c !== null; c = c.nextSibling) {
+      result.push(node_to_tree(c));
+    }
+    return result;
   }
-
-  for (c = domNode.firstChild; c != null; c = c.nextSibling) {
-    result.push(nodeToTree(c));
-  }
-
-  return result;
-};
+}
+Jsworld.node_to_tree = node_to_tree;
 
 // nodes(tree(N)) = nodes(N)
-const nodes = (tree) => {
-  if (tree.node?.jsworldOpaque === true) {
+function nodes(tree) {
+  var ret, i;
+  if (tree.node.jsworldOpaque === true) {
     return [tree.node];
   }
 
-  let ret = [tree.node];
-
-  for (let child of tree.children) {
-    ret = ret.concat(nodes(child));
+  ret = [tree.node];
+  for (i = 0; i < tree.children.length; i++) {
+    ret = ret.concat(nodes(tree.children[i]));
   }
-
   return ret;
-};
+}
 
 // relations(tree(N)) = relations(N)
-const relations = (tree) => {
-  let ret = [];
-
-  for (let child of tree.children) {
-    ret.push({ relation: "parent", parent: tree.node, child: child.node });
+function relations(tree) {
+  var ret = [];
+  var i;
+  for (i = 0; i < tree.children.length; i++) {
+    ret.push({
+      relation: "parent",
+      parent: tree.node,
+      child: tree.children[i].node,
+    });
   }
 
-  for (let i = 0; i < tree.children.length - 1; i++) {
+  for (i = 0; i < tree.children.length - 1; i++) {
     ret.push({
       relation: "neighbor",
       left: tree.children[i].node,
@@ -323,22 +355,19 @@ const relations = (tree) => {
   }
 
   if (!tree.node.jsworldOpaque) {
-    for (let child of tree.children) {
-      ret = ret.concat(relations(child));
+    for (i = 0; i < tree.children.length; i++) {
+      ret = ret.concat(relations(tree.children[i]));
     }
   }
 
   return ret;
-};
+}
 
-/**
- * Preorder traversal
- */
-const preorder = (node, f) => {
-  f(node, () => {
-    let child = node.firstChild;
-    let nextSibling;
-
+// Preorder traversal.
+var preorder = function (node, f) {
+  f(node, function () {
+    var child = node.firstChild;
+    var nextSibling;
     while (child) {
       nextSibling = child.nextSibling;
       preorder(child, f);
@@ -347,56 +376,59 @@ const preorder = (node, f) => {
   });
 };
 
-/**
- * nodeEq: node node -> boolean
- * Returns true if the two nodes should be the same.
- */
-const nodeEq = (node1, node2) => node1 && node2 && node1 === node2;
-
-/**
- * isMemq: X (arrayof X) -> boolean
- * Produces true if any of the elements of L are nodeEq to x.
- */
-const isMemq = (x, L) => {
-  return !!L.find((n) => nodeEq(x, n));
+// nodeEq: node node -> boolean
+// Returns true if the two nodes should be the same.
+var nodeEq = function (node1, node2) {
+  return node1 && node2 && node1 === node2;
 };
 
-/**
- * If any node cares about the world, send it in.
- */
-const refreshNodeValues = (nodes) => {
-  for (let node of nodes) {
-    if (node.onWorldChange) {
-      node.onWorldChange(world);
+// isMemq: X (arrayof X) -> boolean
+// Produces true if any of the elements of L are nodeEq to x.
+var isMemq = function (x, L) {
+  var i;
+  for (i = 0; i < L.length; i++) {
+    if (nodeEq(x, L[i])) {
+      return true;
     }
   }
+  return false;
 };
 
-/**
- * update_dom(nodes(Node), relations(Node)) = void
- */
-const updateDOM = (toplevelNode, nodes, relations) => {
-  // move all children to their proper parents
-  for (let rel of relations) {
-    if (rel.relation === "parent") {
-      const parent = rel.parent;
-      const child = rel.child;
+// If any node cares about the world, send it in.
+function refresh_node_values(nodes) {
+  var i;
+  for (i = 0; i < nodes.length; i++) {
+    if (nodes[i].onWorldChange) {
+      nodes[i].onWorldChange(world);
+    }
+  }
+}
 
-      if (!nodeEq(child.parentNode, parent)) {
+// update_dom(nodes(Node), relations(Node)) = void
+function update_dom(toplevelNode, nodes, relations) {
+  var i, parent, child;
+  // TODO: rewrite this to move stuff all in one go... possible? necessary?
+
+  // move all children to their proper parents
+  for (i = 0; i < relations.length; i++) {
+    if (relations[i].relation === "parent") {
+      parent = relations[i].parent;
+      child = relations[i].child;
+      if (child.parentNode !== parent) {
         parent.appendChild(child);
       }
     }
   }
 
   // arrange siblings in proper order
-  // yes, this really is bubble sort
-  let unsorted = true;
+  // truly terrible... BUBBLE SORT
+  var unsorted = true;
   while (unsorted) {
     unsorted = false;
-    for (let rel of relations) {
-      if (rel.relation === "neighbor") {
-        const left = rel.left;
-        const right = rel.right;
+    for (i = 0; i < relations.length; i++) {
+      if (relations[i].relation === "neighbor") {
+        var left = relations[i].left,
+          right = relations[i].right;
 
         if (!nodeEq(left.nextSibling, right)) {
           left.parentNode.insertBefore(left, right);
@@ -407,207 +439,220 @@ const updateDOM = (toplevelNode, nodes, relations) => {
   }
 
   // Finally, remove nodes that shouldn't be attached anymore.
-  const nodesPlus = nodes.concat([toplevelNode]);
-
-  preorder(toplevelNode, (aNode, continueTraversalDown) => {
+  var nodesPlus = nodes.concat([toplevelNode]);
+  preorder(toplevelNode, function (aNode, continueTraversalDown) {
     if (aNode.jsworldOpaque) {
       if (!isMemq(aNode, nodesPlus)) {
         aNode.parentNode.removeChild(aNode);
       }
     } else {
-      continueTraversalDown();
+      if (!isMemq(aNode, nodesPlus)) {
+        aNode.parentNode.removeChild(aNode);
+      } else {
+        continueTraversalDown();
+      }
     }
   });
 
-  refreshNodeValues(nodes);
-};
+  refresh_node_values(nodes);
+}
 
-/**
- * camelCase: string -> string
- * Converts lisp-case to camelCase
- */
-const camelCase = (name) => name.replace(/\-(.)/g, (_, l) => l.toUpperCase());
+// camelCase: string -> string
+function camelCase(name) {
+  return name.replace(/\-(.)/g, function (m, l) {
+    return l.toUpperCase();
+  });
+}
 
-const setCSSAttribs = (node, attribs) => {
-  for (let attrib of attribs) {
-    node.style[camelCase(attrib.attrib)] = attrib.values.join(" ");
+function set_css_attribs(node, attribs) {
+  var j;
+  for (j = 0; j < attribs.length; j++) {
+    node.style[camelCase(attribs[j].attrib)] = attribs[j].values.join(" ");
   }
-};
+}
 
-/**
- * isMatchingCssSelector: node css -> boolean
- * Returns true if the CSS selector matches.
- */
-const isMatchingCSSSelector = (node, css) => {
+// isMatchingCssSelector: node css -> boolean
+// Returns true if the CSS selector matches.
+function isMatchingCssSelector(node, css) {
   if (css.id.match(/^\./)) {
     // Check to see if we match the class
     return (
       node.className && member(node.className.split(/\s+/), css.id.substring(1))
     );
+  } else {
+    return node.id && node.id === css.id;
   }
+}
+
+var clearCss = function (node) {
+  // FIXME: we should not be clearing the css
+  //      if ('style' in node)
+  //          node.style.cssText = "";
 };
 
-// according to note in original, we shouldn't be clearing CSS
-const clearCSS = doNothing;
-
-const updateCSS = (nodes, css) => {
-  for (let node of nodes) {
-    // right now this does nothing
-    if (!node.jsworldOpaque) {
-      clearCSS(node);
+function update_css(nodes, css) {
+  // clear CSS
+  var i, j;
+  for (i = 0; i < nodes.length; i++) {
+    if (!nodes[i].jsworldOpaque) {
+      clearCss(nodes[i]);
     }
   }
 
   // set CSS
-  for (let c of css) {
-    if (c.id) {
-      for (let node of nodes) {
-        if (isMatchingCSSSelector(node, c)) {
-          setCSSAttribs(node, c.attribs);
+  for (i = 0; i < css.length; i++) {
+    if (css[i].id) {
+      for (j = 0; j < nodes.length; j++) {
+        if (isMatchingCssSelector(nodes[j], css[i])) {
+          set_css_attribs(nodes[j], css[i].attribs);
         }
       }
     } else {
-      setCSSAttribs(c.node, c.attribs);
-    }
-  }
-};
-
-const doRedraw = (
-  world,
-  oldWorld,
-  toplevelNode,
-  redrawFunc,
-  redrawCSSFunc,
-  k,
-) => {
-  if (oldWorld instanceof InitialWorld) {
-    // simple path
-    redrawFunc(world, (drawn) => {
-      const t = sexp2tree(drawn);
-      const ns = nodes(t);
-
-      redrawCSSFunc(world, (css) => {
-        updateCSS(ns, sexp2css(css));
-        updateDOM(toplevelNode, ns, relations(t));
-        k();
-      });
-    });
-  } else {
-    maintainingSelection((k2) => {
-      redrawFunc(world, (newRedraw) => {
-        redrawCSSFunc((newRedrawCss) => {
-          const t = sexp2tree(newRedraw);
-          const ns = nodes(t);
-          // Try to save the current selection and preserve it across DOM updates
-          updateCSS(ns, sexp2css(newRedrawCss));
-          updateDOM(toplevelNode, ns, relations(t));
-          k2();
-        });
-      });
-    }, doNothing);
-  }
-};
-
-class FocusedSelection {
-  constructor() {
-    this.focused = currentFocusedNode;
-    this.selectionStart = currentFocusedNode.selectionStart;
-    this.selectionEnd = currentFocusedNode.selectionEnd;
-  }
-
-  restore() {
-    if (this.focused.parentNode) {
-      this.focused.selectionStart = this.selectionStart;
-      this.focused.selectionEnd = this.selectionEnd;
-      this.focused.focus();
-    } else if (this.focused.id) {
-      const matching = document.getElementById(this.focused.id);
-      if (matching) {
-        matching.selectionStart = this.selectionStart;
-        matching.selectionEnd = this.selectionEnd;
-        matching.focus();
-      }
+      set_css_attribs(css[i].node, css[i].attribs);
     }
   }
 }
 
-const hasCurrentFocusedSelection = () => {
+var sexp2tree;
+var sexp2css;
+var maintainingSelection;
+
+function do_redraw(
+  world,
+  oldWorld,
+  toplevelNode,
+  redraw_func,
+  redraw_css_func,
+  k,
+) {
+  if (oldWorld instanceof InitialWorld) {
+    // Simple path
+    redraw_func(world, function (drawn) {
+      var t = sexp2tree(drawn);
+      var ns = nodes(t);
+      // HACK: css before dom, due to excanvas hack.
+      redraw_css_func(world, function (css) {
+        update_css(ns, sexp2css(css));
+        update_dom(toplevelNode, ns, relations(t));
+        k();
+      });
+    });
+  } else {
+    maintainingSelection(function (k2) {
+      redraw_func(world, function (newRedraw) {
+        redraw_css_func(world, function (newRedrawCss) {
+          var t = sexp2tree(newRedraw);
+          var ns = nodes(t);
+          // Try to save the current selection and preserve it across
+          // dom updates.
+
+          // Kludge: update the CSS styles first.
+          // This is a workaround an issue with excanvas: any style change
+          // clears the content of the canvas, so we do this first before
+          // attaching the dom element.
+          update_css(ns, sexp2css(newRedrawCss));
+          update_dom(toplevelNode, ns, relations(t));
+
+          k2();
+        });
+      });
+    }, k);
+  }
+}
+
+var FocusedSelection;
+
+function hasCurrentFocusedSelection() {
   return currentFocusedNode !== undefined;
-};
+}
 
-const getCurrentFocusedSelection = () => {
+function getCurrentFocusedSelection() {
   return new FocusedSelection();
-};
+}
 
-const maintainingSelection = (f, k) => {
+// maintainingSelection: (-> void) -> void
+// Calls the thunk f while trying to maintain the current focused selection.
+maintainingSelection = function (f, k) {
+  var currentFocusedSelection;
   if (hasCurrentFocusedSelection()) {
-    const currentFocusedSelection = getCurrentFocusedSelection();
-    f(() => {
+    currentFocusedSelection = getCurrentFocusedSelection();
+    f(function () {
       currentFocusedSelection.restore();
       k();
     });
   } else {
-    f(() => {
+    f(function () {
       k();
     });
+  }
+};
+
+FocusedSelection = function () {
+  this.focused = currentFocusedNode;
+  this.selectionStart = currentFocusedNode.selectionStart;
+  this.selectionEnd = currentFocusedNode.selectionEnd;
+};
+
+// Try to restore the focus.
+FocusedSelection.prototype.restore = function () {
+  // FIXME: if we're scrolling through, what's visible
+  // isn't restored yet.
+  if (this.focused.parentNode) {
+    this.focused.selectionStart = this.selectionStart;
+    this.focused.selectionEnd = this.selectionEnd;
+    this.focused.focus();
+  } else if (this.focused.id) {
+    var matching = document.getElementById(this.focused.id);
+    if (matching) {
+      matching.selectionStart = this.selectionStart;
+      matching.selectionEnd = this.selectionEnd;
+      matching.focus();
+    }
   }
 };
 
 //////////////////////////////////////////////////////////////////////
 
-class BigBangRecord {
-  constructor(
-    top,
-    world,
-    handlerCreators,
-    handlers,
-    attribs,
-    success,
-    fail,
-    extras,
-  ) {
-    this.top = top;
-    this.world = world;
-    this.handlers = handlers;
-    this.handlerCreators = handlerCreators;
-    this.attribs = attribs;
-    this.success = success;
-    this.fail = fail;
-    this.extras = extras;
-  }
+var bigBang, StopWhenHandler;
 
-  continue(newWorld) {
-    try {
-      bigBang(
-        this.top,
-        newWorld,
-        this.handlerCreators,
-        this.attribs,
-        this.success,
-        this.fail,
-        this.extras,
-      );
-    } catch (e) {
-      // will continue restarting as long as isShutdown is false
-    }
-  }
-
-  pause() {
-    for (let handler of this.handlers) {
-      if (!(handler instanceof StopWhenHandler)) {
-        handler.onUnregister(this.top);
-      }
-    }
-  }
-
-  restart() {
-    for (let handler of this.handlers) {
-      if (!(handler instanceof StopWhenHandler)) {
-        handler.onRegister(this.top);
-      }
-    }
-  }
+function BigBangRecord(
+  top,
+  world,
+  handlerCreators,
+  handlers,
+  attribs,
+  success,
+  fail,
+) {
+  this.top = top;
+  this.world = world;
+  this.handlers = handlers;
+  this.handlerCreators = handlerCreators;
+  this.attribs = attribs;
+  this.success = success;
+  this.fail = fail;
 }
+
+BigBangRecord.prototype.restart = function () {
+  var i;
+  for (i = 0; i < this.handlers.length; i++) {
+    if (!(this.handlers[i] instanceof StopWhenHandler)) {
+      this.handlers[i].onRegister(this.top);
+    }
+  }
+};
+
+BigBangRecord.prototype.pause = function () {
+  var i;
+  for (i = 0; i < this.handlers.length; i++) {
+    if (!(this.handlers[i] instanceof StopWhenHandler)) {
+      this.handlers[i].onUnregister(this.top);
+    }
+  }
+};
+//////////////////////////////////////////////////////////////////////
+
+var copy_attribs;
 
 // Notes: bigBang maintains a stack of activation records; it should be possible
 // to call bigBang re-entrantly.
@@ -615,81 +660,75 @@ class BigBangRecord {
 // init_world: any
 // handlerCreators: (Arrayof (-> handler))
 // k: any -> void
-
-export const bigBang = (
+bigBang = function (
   top,
-  initWorld,
+  init_world,
   handlerCreators,
   attribs,
   succ,
   fail,
   extras,
-) => {
-  let thisWorldIndex = getNewWorldIndex();
+) {
+  var thisWorldIndex = getNewWorldIndex();
   worldIndexStack.push(thisWorldIndex);
   worldIndex = thisWorldIndex;
+  var i;
+  // clear_running_state();
 
-  // Construct a fresh set of the handlers
-  const handlers = map(handlerCreators, (x) => x(thisWorldIndex));
-
+  // Construct a fresh set of the handlers.
+  var handlers = map(handlerCreators, function (x) {
+    return x(thisWorldIndex);
+  });
   if (runningBigBangs.length > 0) {
     runningBigBangs[runningBigBangs.length - 1].pause();
   }
-
   changingWorld.push(false);
   worldListeners = [];
   worldListenersStack.push(worldListeners);
   eventDetachers = [];
   eventDetachersStack.push(eventDetachers);
 
-  // Create an activation record for this big bang
-  const activationRecord = new BigBangRecord(
+  // Create an activation record for this big-bang.
+  var activationRecord = new BigBangRecord(
     top,
-    initWorld,
+    init_world,
     handlerCreators,
     handlers,
     attribs,
     succ,
     fail,
-    extras,
   );
-
   runningBigBangs.push(activationRecord);
-
-  const keepRecordUpToDate = (w, oldW, k2) => {
+  function keepRecordUpToDate(w, oldW, k2) {
     activationRecord.world = w;
     k2();
-  };
-
-  addWorldListener(keepRecordUpToDate);
+  }
+  add_world_listener(keepRecordUpToDate);
 
   if (typeof extras.tracer === "function") {
-    addWorldListener(extras.tracer);
+    add_world_listener(extras.tracer);
   }
 
-  // Monitor for termination and register the other handlers
-  let stopWhen = new StopWhenHandler(
-    (w, k2) => {
+  // Monitor for termination and register the other handlers.
+  var stopWhen = new StopWhenHandler(
+    function (w, k2) {
       k2(false);
     },
-    (w, k2) => {
+    function (w, k2) {
       k2(w);
     },
   );
-
-  for (let handler of handlers) {
-    if (handler instanceof StopWhenHandler) {
-      stopWhen = handler;
+  for (i = 0; i < handlers.length; i++) {
+    if (handlers[i] instanceof StopWhenHandler) {
+      stopWhen = handlers[i];
     }
   }
-
   activationRecord.restart();
-
-  const watchForTermination = (w, oldW, k2) => {
-    if (thisWorldIndex !== worldIndex) {
+  var watchForTermination = function (w, oldW, k2) {
+    if (thisWorldIndex != worldIndex) {
       return;
     }
-    stopWhen.test(w, (stop) => {
+    stopWhen.test(w, function (stop) {
       if (!stop) {
         k2();
       } else {
@@ -697,113 +736,106 @@ export const bigBang = (
           if (extras.closeBigBangWindow) {
             extras.closeBigBangWindow();
           }
-
-          isShutdown = true;
-          shutdownSingle({ cleanShutdown: true });
+          Jsworld.shutdownSingle({ cleanShutdown: true });
         } else {
           activationRecord.pause();
         }
       }
     });
   };
+  add_world_listener(watchForTermination);
 
-  addWorldListener(watchForTermination);
-
-  // Finally, begin the big-bang
-  copyAttribs(top, attribs);
-  changeWorld((w, k2) => {
-    k2(initWorld);
+  // Finally, begin the big-bang.
+  copy_attribs(top, attribs);
+  change_world(function (w, k2) {
+    k2(init_world);
   }, doNothing);
 };
+Jsworld.bigBang = bigBang;
 
-/**
- * onTick: number CPS(world -> world) -> handler
- */
-export const onTick = (delay, tick) => {
-  return (thisWorldIndex) => {
-    const ticker = {
-      watchId: -1,
-      onRegister(top) {
-        scheduleTick(delay);
-      },
-      onUnregister(top) {
-        if (ticker.watchId) {
-          clearTimeout(ticker.watchId);
-        }
-      },
-    };
-
-    const scheduleTick = (t) => {
-      ticker.watchId = setTimeout(() => {
-        if (thisWorldIndex !== worldIndex) {
+// on_tick: number CPS(world -> world) -> handler
+var on_tick = function (delay, tick) {
+  return function (thisWorldIndex) {
+    var scheduleTick, ticker;
+    scheduleTick = function (t) {
+      ticker.watchId = setTimeout(function () {
+        if (thisWorldIndex != worldIndex) {
           return;
         }
-
         ticker.watchId = undefined;
-        const startTime = Date.now();
-
-        changeWorld(tick, () => {
-          const endTime = Date.now();
+        var startTime = new Date().valueOf();
+        change_world(tick, function () {
+          var endTime = new Date().valueOf();
           scheduleTick(Math.max(delay - (endTime - startTime), 0));
         });
       }, t);
     };
 
+    ticker = {
+      watchId: -1,
+      onRegister: function (top) {
+        scheduleTick(delay);
+      },
+
+      onUnregister: function (top) {
+        if (ticker.watchId) {
+          clearTimeout(ticker.watchId);
+        }
+      },
+    };
     return ticker;
   };
 };
+Jsworld.on_tick = on_tick;
 
-export const onKey = (press) => {
-  return (thisWorldIndex) => {
-    const wrappedPress = (e) => {
-      if (thisWorldIndex !== worldIndex) {
+var preventDefault, stopPropagation;
+var attachEvent, detachEvent;
+
+function on_key(press) {
+  return function (thisWorldIndex) {
+    var wrappedPress = function (e) {
+      if (thisWorldIndex != worldIndex) {
         return;
       }
-
       if (e.keyCode === 27) {
-        // Escape events are handled by the environment, not the world
         return;
-      }
-
+      } // Escape events are not for world; the environment handles them
       stopPropagation(e);
       preventDefault(e);
-      changeWorld((w, k) => {
+      change_world(function (w, k) {
         press(w, e, k);
       }, doNothing);
     };
-
     return {
-      onRegister(top) {
-        top.tabIndex = 1;
-        top.focus();
+      onRegister: function (top) {
+        //http://www.w3.org/TR/html5/editing.html#sequential-focus-navigation-and-the-tabindex-attribue
+        jQuery(top).attr("tabindex", 1);
+        jQuery(top).focus();
         attachEvent(top, "keydown", wrappedPress);
       },
-      onUnregister(top) {
+      onUnregister: function (top) {
         detachEvent(top, "keydown", wrappedPress);
       },
     };
   };
-};
+}
+Jsworld.on_key = on_key;
 
 // http://www.quirksmode.org/js/events_mouse.html
 // http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
-export const onMouse = (mouse) => {
-  return (thisWorldIndex) => {
-    let isButtonDown = false;
-
-    const makeWrapped = (type) => {
-      return (e) => {
-        if (thisWorldIndex !== worldIndex) {
+function on_mouse(mouse) {
+  return function (thisWorldIndex) {
+    var isButtonDown = false;
+    var makeWrapped = function (type) {
+      return function (e) {
+        if (thisWorldIndex != worldIndex) {
           return;
         }
-
         preventDefault(e);
         stopPropagation(e);
-
-        let x = e.pageX;
-        let y = e.pageY;
-        let currentElement = e.target;
-
+        var x = e.pageX,
+          y = e.pageY;
+        var currentElement = e.target;
         do {
           x -= currentElement.offsetLeft;
           y -= currentElement.offsetTop;
@@ -815,35 +847,32 @@ export const onMouse = (mouse) => {
         } else if (type === "button-up") {
           isButtonDown = false;
         }
-
         if (type === "move" && isButtonDown) {
-          changeWorld((w, k) => {
+          change_world(function (w, k) {
             mouse(w, x, y, "drag", k);
           }, doNothing);
         } else {
-          changeWorld((w, k) => {
+          change_world(function (w, k) {
             mouse(w, x, y, type, k);
           }, doNothing);
         }
       };
     };
-
-    const wrappedDown = makeWrapped("button-down");
-    const wrappedUp = makeWrapped("button-up");
+    var wrappedDown = makeWrapped("button-down");
+    var wrappedUp = makeWrapped("button-up");
     // How do we do drag?
-    const wrappedMove = makeWrapped("move");
-    const wrappedEnter = makeWrapped("enter");
-    const wrappedLeave = makeWrapped("leave");
-
+    var wrappedMove = makeWrapped("move");
+    var wrappedEnter = makeWrapped("enter");
+    var wrappedLeave = makeWrapped("leave");
     return {
-      onRegister(top) {
+      onRegister: function (top) {
         attachEvent(top, "mousedown", wrappedDown);
         attachEvent(top, "mouseup", wrappedUp);
         attachEvent(top, "mousemove", wrappedMove);
         attachEvent(top, "mouseenter", wrappedEnter);
         attachEvent(top, "mouseleave", wrappedLeave);
       },
-      onUnregister(top) {
+      onUnregister: function (top) {
         detachEvent(top, "mousedown", wrappedDown);
         detachEvent(top, "mouseup", wrappedUp);
         detachEvent(top, "mousemove", wrappedMove);
@@ -852,83 +881,84 @@ export const onMouse = (mouse) => {
       },
     };
   };
-};
+}
+Jsworld.on_mouse = on_mouse;
 
-export const onDraw = (redraw, redrawCSS) => {
-  const wrappedRedraw = (w, k) => {
-    redraw(w, (newDomTree) => {
-      checkDOMSexp(newDomTree, newDomTree);
+var checkDomSexp;
+
+//  on_draw: CPS(world -> (sexpof node)) CPS(world -> (sexpof css-style)) -> handler
+function on_draw(redraw, redraw_css) {
+  var wrappedRedraw = function (w, k) {
+    redraw(w, function (newDomTree) {
+      checkDomSexp(newDomTree, newDomTree);
       k(newDomTree);
     });
   };
 
-  return (thisWorldIndex) => {
-    const drawer = {
+  return function (thisWorldIndex) {
+    var drawer = {
       _top: null,
-      _listener(w, oldW, k2) {
-        if (thisWorldIndex !== worldIndex) {
+      _listener: function (w, oldW, k2) {
+        if (thisWorldIndex != worldIndex) {
           return;
         }
-
-        doRedraw(w, oldW, drawer._top, wrappedRedraw, redrawCSS, k2);
+        do_redraw(w, oldW, drawer._top, wrappedRedraw, redraw_css, k2);
       },
-      onRegister(top) {
+      onRegister: function (top) {
         drawer._top = top;
-        addWorldListener(drawer._listener);
+        add_world_listener(drawer._listener);
       },
-      onUnregister(top) {
-        removeWorldListener(drawer._listener);
+
+      onUnregister: function (top) {
+        remove_world_listener(drawer._listener);
       },
     };
-
     return drawer;
   };
-};
-
-class StopWhenHandler {
-  constructor(test, receiver) {
-    this.test = test;
-    this.receiver = receiver;
-  }
 }
+Jsworld.on_draw = on_draw;
 
-export const stopWhen = (test, receiver = null) => {
-  return () => {
-    if (!receiver) {
-      receiver = (w, k) => {
+StopWhenHandler = function (test, receiver) {
+  this.test = test;
+  this.receiver = receiver;
+};
+// stop_when: CPS(world -> boolean) CPS(world -> boolean) -> handler
+function stop_when(test, receiver) {
+  return function () {
+    if (receiver === undefined) {
+      receiver = function (w, k) {
         k(w);
       };
     }
-
     return new StopWhenHandler(test, receiver);
   };
-};
+}
+Jsworld.stop_when = stop_when;
 
-export const onWorldChange = (f) => {
-  return (thisWorldIndex) => {
-    const listener = (world, oldW, k) => {
-      if (thisWorldIndex !== worldIndex) {
+function on_world_change(f) {
+  return function (thisWorldIndex) {
+    var listener = function (world, oldW, k) {
+      if (thisWorldIndex != worldIndex) {
         return;
       }
-
       f(world, k);
     };
-
     return {
-      onRegister(top) {
-        addWorldListener(listener);
+      onRegister: function (top) {
+        add_world_listener(listener);
       },
-      onUnregister(top) {
-        removeWorldListener(listener);
+      onUnregister: function (top) {
+        remove_world_listener(listener);
       },
     };
   };
-};
+}
+Jsworld.on_world_change = on_world_change;
 
-// Compatibility for attaching events to nodes
-// Not sure we need to maintain IE compatibility in 2023, but oh well
-const attachEvent = (node, eventName, fn) => {
+// Compatibility for attaching events to nodes.
+attachEvent = function (node, eventName, fn) {
   if (node.addEventListener) {
+    // Mozilla
     node.addEventListener(eventName, fn, false);
   } else {
     // IE
@@ -936,8 +966,9 @@ const attachEvent = (node, eventName, fn) => {
   }
 };
 
-const detachEvent = (node, eventName, fn) => {
-  if (node.removeEventListener) {
+detachEvent = function (node, eventName, fn) {
+  if (node.addEventListener) {
+    // Mozilla
     node.removeEventListener(eventName, fn, false);
   } else {
     // IE
@@ -951,234 +982,246 @@ const detachEvent = (node, eventName, fn) => {
 
 // add_ev: node string CPS(world event -> world) -> void
 // Attaches a world-updating handler when the world is changed.
-const addEv = (node, event, f) => {
-  const eventHandler = (e) => {
-    changeWorld((w, k) => {
+function add_ev(node, event, f) {
+  var eventHandler = function (e) {
+    change_world(function (w, k) {
       f(w, e, k);
     }, doNothing);
   };
-
   attachEvent(node, event, eventHandler);
-  eventDetachers.push(() => {
+  eventDetachers.push(function () {
     detachEvent(node, event, eventHandler);
   });
-};
+}
 
 // add_ev_after: node string CPS(world event -> world) -> void
 // Attaches a world-updating handler when the world is changed, but only
 // after the fired event has finished.
-const addEvAfter = (node, event, f) => {
-  const eventHandler = (e) => {
-    if (typeof setInterval === "undefined") {
-      setTimeout(() => {
-        changeWorld((w, k) => {
-          f(w, e, k);
-        }, doNothing);
-      }, 0);
-    } else {
-      setInterval(() => {
-        changeWorld((w, k) => {
-          f(w, e, k);
-        }, doNothing);
-      });
-    }
+function add_ev_after(node, event, f) {
+  var eventHandler = function (e) {
+    setTimeout(function () {
+      change_world(function (w, k) {
+        f(w, e, k);
+      }, doNothing);
+    }, 0);
   };
 
   attachEvent(node, event, eventHandler);
-  eventDetachers.push(() => {
+  eventDetachers.push(function () {
     detachEvent(node, event, eventHandler);
   });
-};
+}
 
-const addFocusTracking = (node) => {
-  attachEvent(node, "focus", (e) => {
+function addFocusTracking(node) {
+  attachEvent(node, "focus", function (e) {
     currentFocusedNode = node;
   });
-
-  attachEvent(node, "blur", (e) => {
+  attachEvent(node, "blur", function (e) {
     currentFocusedNode = undefined;
   });
-
   return node;
-};
+}
 
 //
 // WORLD STUFFS
 //
-const sexp2tree = (sexp) => {
+
+sexp2tree = function (sexp) {
   if (sexp.length === undefined) {
     return { node: sexp, children: [] };
   } else {
-    return {
-      node: sexp[0],
-      children: map(sexp.slice(1), sexp2tree),
-    };
+    return { node: sexp[0], children: map(sexp.slice(1), sexp2tree) };
   }
 };
 
-const sexp2attrib = (sexp) => {
+function sexp2attrib(sexp) {
   return { attrib: sexp[0], values: sexp.slice(1) };
-};
+}
 
-const sexp2cssNode = (sexp) => {
-  const attribs = map(sexp.slice(1), sexp2attrib);
-
+function sexp2css_node(sexp) {
+  var attribs = map(sexp.slice(1), sexp2attrib);
   if (typeof sexp[0] === "string") {
-    return [{ id: sexp[0], attribs }];
+    return [{ id: sexp[0], attribs: attribs }];
   } else if (sexp[0].length !== undefined) {
-    return map(sexp[0], (id) => ({ id, attribs }));
+    return map(sexp[0], function (id) {
+      return { id: id, attribs: attribs };
+    });
   } else {
-    return [{ node: sexp[0], attribs }];
-  }
-};
-
-const sexp2css = (sexp) => {
-  return concatMap(sexp, sexp2cssNode);
-};
-
-const isTextNode = (n) => n.nodeType === 3;
-
-const isElementNode = (n) => n.nodeType === 1;
-
-class JSWorldDOMError {
-  constructor(msg, elt) {
-    this.msg = msg;
-    this.elt = elt;
-  }
-
-  toString() {
-    return `JSWorldDOMError: ${this.msg}`;
+    return [{ node: sexp[0], attribs: attribs }];
   }
 }
 
-const throwDOMError = (thing, topThing) => {
-  throw new JSWorldDOMError(
-    `Expected a non-empty array, received ${thing} within ${topThing}`,
+sexp2css = function (sexp) {
+  return concat_map(sexp, sexp2css_node);
+};
+
+function isTextNode(n) {
+  return n.nodeType === 3;
+}
+
+function isElementNode(n) {
+  return n.nodeType === 1;
+}
+
+var JsworldDomError;
+
+var throwDomError = function (thing, topThing) {
+  throw new JsworldDomError(
+    "Expected a non-empty array, received " + thing + " within " + topThing,
     thing,
   );
 };
 
-const checkDOMSexp = (thing, topThing) => {
-  if (!Array.isArray(thing)) {
-    throwDOMError(thing, topThing);
+// checkDomSexp: X X -> boolean
+// Checks to see if thing is a DOM-sexp.  If not,
+// throws an object that explains why not.
+checkDomSexp = function (thing, topThing) {
+  var i;
+  if (!thing instanceof Array) {
+    throwDomError(thing, topThing);
   }
-
   if (thing.length === 0) {
-    throwDOMError(thing, topThing);
+    throwDomError(thing, topThing);
   }
 
   // Check that the first element is a Text or an element.
   if (isTextNode(thing[0])) {
     if (thing.length > 1) {
-      throw new JSWorldDOMError(
-        `Text node ${thing} cannot have children`,
+      throw new JsworldDomError(
+        "Text node " + thing + " can not have children",
         thing,
       );
     }
   } else if (isElementNode(thing[0])) {
-    for (let elt of thing.slice(1)) {
-      checkDOMSexp(elt, thing);
+    for (i = 1; i < thing.length; i++) {
+      checkDomSexp(thing[i], thing);
     }
   } else {
-    console.log(thing[0]);
+    if (window.console && window.console.log) {
+      window.console.log(thing[0]);
+    }
 
-    throw new JSWorldDOMError(
-      `Expected a Text or an Element node, received ${thing} within ${topThing}`,
+    throw new JsworldDomError(
+      "expected a Text or an Element, received " +
+        thing +
+        " within " +
+        topThing,
+      thing[0],
     );
   }
+};
+
+JsworldDomError = function (msg, elt) {
+  this.msg = msg;
+  this.elt = elt;
+};
+JsworldDomError.prototype.toString = function () {
+  return "JsworldDomError: " + this.msg;
 };
 
 //
 // DOM CREATION STUFFS
 //
-const copyAttribs = (node, attribs) => {
+
+copy_attribs = function (node, attribs) {
+  var a;
   if (attribs) {
-    for (let [k, v] of Object.entries(attribs)) {
-      if (typeof v === "function") {
-        addEv(node, k, v);
-      } else {
-        node[k] = v;
+    for (a in attribs) {
+      if (hasOwnProperty.call(attribs, a)) {
+        if (typeof attribs[a] === "function") {
+          add_ev(node, a, attribs[a]);
+        } else {
+          node[a] = attribs[a];
+        }
       }
     }
   }
-
   return node;
 };
 
 //
 // NODE TYPES
 //
-export const p = (attribs) =>
-  addFocusTracking(copyAttribs(document.createElement("p"), attribs));
 
-export const div = (attribs) =>
-  addFocusTracking(copyAttribs(document.createElement("div"), attribs));
+function p(attribs) {
+  return addFocusTracking(copy_attribs(document.createElement("p"), attribs));
+}
+Jsworld.p = p;
 
-export const button = (f, attribs) => {
-  let n = document.createElement("button");
+function div(attribs) {
+  return addFocusTracking(copy_attribs(document.createElement("div"), attribs));
+}
+Jsworld.div = div;
 
-  n.onclick = (e) => false;
-  addEv(n, "click", f);
-  return addFocusTracking(copyAttribs(n, attribs));
-};
+// Used To Be: (world event -> world) (hashof X Y) -> domElement
+// Now: CPS(world event -> world) (hashof X Y) -> domElement
+function button(f, attribs) {
+  var n = document.createElement("button");
+  n.onclick = function (e) {
+    return false;
+  };
+  add_ev(n, "click", f);
+  return addFocusTracking(copy_attribs(n, attribs));
+}
+Jsworld.button = button;
 
-const preventDefault = (e) => {
-  if (e.preventDefault) {
-    e.preventDefault();
+preventDefault = function (event) {
+  if (event.preventDefault) {
+    event.preventDefault();
   } else {
-    e.returnValue = false;
+    event.returnValue = false;
   }
 };
 
-const stopPropagation = (e) => {
-  if (e.stopPropagation) {
-    e.stopPropagation();
+stopPropagation = function (event) {
+  if (event.stopPropagation) {
+    event.stopPropagation();
   } else {
-    e.cancelBubble = true;
+    event.cancelBubble = true;
   }
 };
 
-const stopClickPropagation = (node) => {
-  attachEvent(node, "click", (e) => {
+var stopClickPropagation = function (node) {
+  attachEvent(node, "click", function (e) {
     stopPropagation(e);
   });
-
   return node;
 };
 
-export const input = (type, updateF, attribs) => {
-  type = type.toLowerCase();
+var text_input, checkbox_input;
 
-  const dispatchTable = {
-    text: textInput,
-    password: textInput,
-    checkbox: checkboxInput,
-    // button: buttonInput,
-    // radio: radioInput
+// input: string CPS(world -> world)
+function input(aType, updateF, attribs) {
+  aType = aType.toLowerCase();
+  var dispatchTable = {
+    text: text_input,
+    password: text_input,
+    checkbox: checkbox_input,
+    //button: button_input,
+    //radio: radio_input
   };
 
-  if (dispatchTable[type]) {
-    return dispatchTable[type](type, updateF, attribs);
+  if (dispatchTable[aType]) {
+    return dispatchTable[aType](aType, updateF, attribs);
   } else {
-    throw new Error(`JS-Input: does not currently support type ${type}`);
+    throw new Error("js-input: does not currently support type " + aType);
   }
-};
+}
+Jsworld.input = input;
 
-const textInput = (type, updateF, attribs) => {
-  let n = document.createElement("input");
-
+text_input = function (type, updateF, attribs) {
+  var n = document.createElement("input");
   n.type = type;
 
-  let lastVal = n.value;
-  const onEvent = () => {
+  var lastVal = n.value;
+  var onEvent = function () {
     if (!n.parentNode) {
       return;
     }
-
-    setTimeout(() => {
+    setTimeout(function () {
       if (lastVal !== n.value) {
         lastVal = n.value;
-        changeWorld((w, k) => {
+        change_world(function (w, k) {
           updateF(w, n.value, k);
         }, doNothing);
       }
@@ -1186,80 +1229,97 @@ const textInput = (type, updateF, attribs) => {
   };
 
   attachEvent(n, "keydown", onEvent);
-  eventDetachers.push(() => {
+  eventDetachers.push(function () {
     detachEvent(n, "keydown", onEvent);
   });
 
   attachEvent(n, "change", onEvent);
-  eventDetachers.push(() => {
+  eventDetachers.push(function () {
     detachEvent(n, "change", onEvent);
   });
 
-  return stopClickPropagation(addFocusTracking(copyAttribs(n, attribs)));
+  return stopClickPropagation(addFocusTracking(copy_attribs(n, attribs)));
 };
 
-const checkboxInput = (type, updateF, attribs) => {
-  let n = document.createElement("input");
-
+checkbox_input = function (type, updateF, attribs) {
+  var n = document.createElement("input");
   n.type = type;
-
-  const onCheck = (w, e, k) => {
+  var onCheck = function (w, e, k) {
     updateF(w, n.checked, k);
   };
+  // This established the widget->world direction
+  add_ev_after(n, "change", onCheck);
 
-  // This establishes the widget->world direction
-  addEvAfter(n, "change", onCheck);
-
-  attachEvent(n, "click", (e) => {
+  attachEvent(n, "click", function (e) {
     stopPropagation(e);
   });
 
-  return copyAttribs(n, attribs);
+  return copy_attribs(n, attribs);
 };
 
-export const text = (s, attribs) => {
-  let result = document.createElement("div");
+// var button_input = function(type, updateF, attribs) {
+//     var n = document.createElement('button');
+//     add_ev(n, 'click', function(w, e, k) { updateF(w, n.value, k); });
+//     return addFocusTracking(copy_attribs(n, attribs));
+// };
 
+function text(s, attribs) {
+  var result = document.createElement("div");
   result.appendChild(document.createTextNode(String(s)));
   result.jsworldOpaque = true;
   return result;
-};
+}
+Jsworld.text = text;
 
-const option = (attribs) => {
-  let node = document.createElement("option");
+var option;
 
+function select(attribs, opts, f) {
+  var n = document.createElement("select"),
+    i;
+  for (i = 0; i < opts.length; i++) {
+    n.add(option({ value: opts[i] }), null);
+  }
+  n.jsworldOpaque = true;
+  add_ev(n, "change", f);
+  var result = addFocusTracking(copy_attribs(n, attribs));
+  return result;
+}
+Jsworld.select = select;
+
+option = function (attribs) {
+  var node = document.createElement("option");
   node.text = attribs.value;
   node.value = attribs.value;
   return node;
 };
 
-export const select = (attribs, opts, f) => {
-  let n = document.createElement("select");
+function textarea(attribs) {
+  return addFocusTracking(
+    copy_attribs(document.createElement("textarea"), attribs),
+  );
+}
+Jsworld.textarea = textarea;
 
-  for (let opt of opts) {
-    n.add(option({ value: opt }), null);
-  }
+function h1(attribs) {
+  return addFocusTracking(copy_attribs(document.createElement("h1"), attribs));
+}
+Jsworld.h1 = h1;
 
-  n.jsworldOpaque = true;
-  addEv(n, "change", f);
-  return addFocusTracking(copyAttribs(n, attribs));
-};
+function canvas(attribs) {
+  return addFocusTracking(
+    copy_attribs(document.createElement("canvas"), attribs),
+  );
+}
+Jsworld.canvas = canvas;
 
-export const textarea = (attribs) =>
-  addFocusTracking(copyAttribs(document.createElement("textarea"), attribs));
-
-export const h1 = (attribs) =>
-  addFocusTracking(copyAttribs(document.createElement("h1"), attribs));
-
-export const canvas = (attribs) =>
-  addFocusTracking(copyAttribs(document.createElement("canvas"), attribs));
-
-export const img = (src, attribs) => {
-  let n = document.createElement("img");
-
+function img(src, attribs) {
+  var n = document.createElement("img");
   n.src = src;
-  return addFocusTracking(copyAttribs(n, attribs));
-};
+  return addFocusTracking(copy_attribs(n, attribs));
+}
+Jsworld.img = img;
 
-export const rawNode = (node, attribs) =>
-  addFocusTracking(copyAttribs(node, attribs));
+function raw_node(node, attribs) {
+  return addFocusTracking(copy_attribs(node, attribs));
+}
+Jsworld.raw_node = raw_node;
