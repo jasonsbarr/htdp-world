@@ -5,8 +5,6 @@ var getNewWorldIndex = function () {
   return _worldIndex;
 };
 
-var rawJsworld = {};
-
 // Stuff here is copy-and-pasted from Chris King's JSWorld.
 //
 // dyoo: as I remember, most of this code had been revised from
@@ -20,13 +18,10 @@ var rawJsworld = {};
  *    a b ... (c -> void) -> void
  */
 
-var Jsworld = rawJsworld;
-
 var currentFocusedNode = false;
 
-var doNothing = function () {};
+export var doNothing = function () {};
 // Just in case external users need this and doNothing might change.
-Jsworld.doNothing = doNothing;
 
 // forEachK: CPS( array CPS(array -> void) (error -> void) -> void )
 // Iterates through an array and applies f to each element using CPS
@@ -45,7 +40,7 @@ var forEachK = function (a, f, f_error, k) {
         return forEachHelp(i + 1);
       });
     } catch (e) {
-      return Jsworld.shutdown({ errorShutdown: e });
+      return shutdown({ errorShutdown: e });
     }
   };
   return forEachHelp(0);
@@ -120,7 +115,7 @@ function resume_running_state() {
 }
 
 // Close all world computations.
-Jsworld.shutdown = function (options) {
+export var shutdown = function (options) {
   while (runningBigBangs.length > 0) {
     var currentRecord = runningBigBangs.pop();
     currentRecord.pause();
@@ -135,7 +130,7 @@ Jsworld.shutdown = function (options) {
 };
 
 // Closes the most recent world computation.
-Jsworld.shutdownSingle = function (options) {
+export var shutdownSingle = function (options) {
   if (runningBigBangs.length > 0) {
     var currentRecord = runningBigBangs.pop();
     currentRecord.pause();
@@ -172,13 +167,13 @@ var DELAY_BEFORE_RETRY = 10;
 
 // change_world: CPS( CPS(world -> world) -> void )
 // Adjust the world, and notify all listeners.
-var change_world = function (updater, k) {
+export var changeWorld = function (updater, k) {
   // Check to see if we're in the middle of changing
   // the world already.  If so, put on the queue
   // and exit quickly.
   if (changingWorld[changingWorld.length - 1]) {
     setTimeout(function () {
-      change_world(updater, k);
+      changeWorld(updater, k);
     }, DELAY_BEFORE_RETRY);
     return;
   }
@@ -213,10 +208,9 @@ var change_world = function (updater, k) {
   } catch (e) {
     changingWorld[changingWorld.length - 1] = false;
     world = originalWorld;
-    return Jsworld.shutdown({ errorShutdown: e });
+    return shutdown({ errorShutdown: e });
   }
 };
-Jsworld.change_world = change_world;
 
 var map = function (a1, f) {
   var b = new Array(a1.length),
@@ -306,19 +300,18 @@ function member(a, x) {
 
 // node_to_tree: dom -> dom-tree
 // Given a native dom node, produces the appropriate tree.
-function node_to_tree(domNode) {
+export function nodeToTree(domNode) {
   var result = [domNode],
     c = domNode.firstChild;
   if (c === undefined) {
     return result;
   } else {
     for (c = domNode.firstChild; c !== null; c = c.nextSibling) {
-      result.push(node_to_tree(c));
+      result.push(nodeToTree(c));
     }
     return result;
   }
 }
-Jsworld.node_to_tree = node_to_tree;
 
 // nodes(tree(N)) = nodes(N)
 function nodes(tree) {
@@ -513,10 +506,6 @@ function update_css(nodes, css) {
   }
 }
 
-var sexp2tree;
-var sexp2css;
-var maintainingSelection;
-
 function do_redraw(
   world,
   oldWorld,
@@ -560,8 +549,6 @@ function do_redraw(
   }
 }
 
-var FocusedSelection;
-
 function hasCurrentFocusedSelection() {
   return currentFocusedNode !== undefined;
 }
@@ -572,7 +559,7 @@ function getCurrentFocusedSelection() {
 
 // maintainingSelection: (-> void) -> void
 // Calls the thunk f while trying to maintain the current focused selection.
-maintainingSelection = function (f, k) {
+var maintainingSelection = function (f, k) {
   var currentFocusedSelection;
   if (hasCurrentFocusedSelection()) {
     currentFocusedSelection = getCurrentFocusedSelection();
@@ -587,7 +574,7 @@ maintainingSelection = function (f, k) {
   }
 };
 
-FocusedSelection = function () {
+var FocusedSelection = function () {
   this.focused = currentFocusedNode;
   this.selectionStart = currentFocusedNode.selectionStart;
   this.selectionEnd = currentFocusedNode.selectionEnd;
@@ -612,8 +599,6 @@ FocusedSelection.prototype.restore = function () {
 };
 
 //////////////////////////////////////////////////////////////////////
-
-var bigBang, StopWhenHandler;
 
 function BigBangRecord(
   top,
@@ -660,7 +645,7 @@ var copy_attribs;
 // init_world: any
 // handlerCreators: (Arrayof (-> handler))
 // k: any -> void
-bigBang = function (
+export var bigBang = function (
   top,
   init_world,
   handlerCreators,
@@ -736,7 +721,7 @@ bigBang = function (
           if (extras.closeBigBangWindow) {
             extras.closeBigBangWindow();
           }
-          Jsworld.shutdownSingle({ cleanShutdown: true });
+          shutdownSingle({ cleanShutdown: true });
         } else {
           activationRecord.pause();
         }
@@ -747,14 +732,13 @@ bigBang = function (
 
   // Finally, begin the big-bang.
   copy_attribs(top, attribs);
-  change_world(function (w, k2) {
+  changeWorld(function (w, k2) {
     k2(init_world);
   }, doNothing);
 };
-Jsworld.bigBang = bigBang;
 
 // on_tick: number CPS(world -> world) -> handler
-var on_tick = function (delay, tick) {
+export var onTick = function (delay, tick) {
   return function (thisWorldIndex) {
     var scheduleTick, ticker;
     scheduleTick = function (t) {
@@ -764,7 +748,7 @@ var on_tick = function (delay, tick) {
         }
         ticker.watchId = undefined;
         var startTime = new Date().valueOf();
-        change_world(tick, function () {
+        changeWorld(tick, function () {
           var endTime = new Date().valueOf();
           scheduleTick(Math.max(delay - (endTime - startTime), 0));
         });
@@ -786,12 +770,8 @@ var on_tick = function (delay, tick) {
     return ticker;
   };
 };
-Jsworld.on_tick = on_tick;
 
-var preventDefault, stopPropagation;
-var attachEvent, detachEvent;
-
-function on_key(press) {
+export function onKey(press) {
   return function (thisWorldIndex) {
     var wrappedPress = function (e) {
       if (thisWorldIndex != worldIndex) {
@@ -802,7 +782,7 @@ function on_key(press) {
       } // Escape events are not for world; the environment handles them
       stopPropagation(e);
       preventDefault(e);
-      change_world(function (w, k) {
+      changeWorld(function (w, k) {
         press(w, e, k);
       }, doNothing);
     };
@@ -819,11 +799,10 @@ function on_key(press) {
     };
   };
 }
-Jsworld.on_key = on_key;
 
 // http://www.quirksmode.org/js/events_mouse.html
 // http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
-function on_mouse(mouse) {
+export function onMouse(mouse) {
   return function (thisWorldIndex) {
     var isButtonDown = false;
     var makeWrapped = function (type) {
@@ -848,11 +827,11 @@ function on_mouse(mouse) {
           isButtonDown = false;
         }
         if (type === "move" && isButtonDown) {
-          change_world(function (w, k) {
+          changeWorld(function (w, k) {
             mouse(w, x, y, "drag", k);
           }, doNothing);
         } else {
-          change_world(function (w, k) {
+          changeWorld(function (w, k) {
             mouse(w, x, y, type, k);
           }, doNothing);
         }
@@ -882,12 +861,9 @@ function on_mouse(mouse) {
     };
   };
 }
-Jsworld.on_mouse = on_mouse;
-
-var checkDomSexp;
 
 //  on_draw: CPS(world -> (sexpof node)) CPS(world -> (sexpof css-style)) -> handler
-function on_draw(redraw, redraw_css) {
+export function onDraw(redraw, redraw_css) {
   var wrappedRedraw = function (w, k) {
     redraw(w, function (newDomTree) {
       checkDomSexp(newDomTree, newDomTree);
@@ -916,14 +892,13 @@ function on_draw(redraw, redraw_css) {
     return drawer;
   };
 }
-Jsworld.on_draw = on_draw;
 
-StopWhenHandler = function (test, receiver) {
+var StopWhenHandler = function (test, receiver) {
   this.test = test;
   this.receiver = receiver;
 };
 // stop_when: CPS(world -> boolean) CPS(world -> boolean) -> handler
-function stop_when(test, receiver) {
+export function stopWhen(test, receiver) {
   return function () {
     if (receiver === undefined) {
       receiver = function (w, k) {
@@ -933,9 +908,8 @@ function stop_when(test, receiver) {
     return new StopWhenHandler(test, receiver);
   };
 }
-Jsworld.stop_when = stop_when;
 
-function on_world_change(f) {
+export function onWorldChange(f) {
   return function (thisWorldIndex) {
     var listener = function (world, oldW, k) {
       if (thisWorldIndex != worldIndex) {
@@ -953,10 +927,9 @@ function on_world_change(f) {
     };
   };
 }
-Jsworld.on_world_change = on_world_change;
 
 // Compatibility for attaching events to nodes.
-attachEvent = function (node, eventName, fn) {
+var attachEvent = function (node, eventName, fn) {
   if (node.addEventListener) {
     // Mozilla
     node.addEventListener(eventName, fn, false);
@@ -966,7 +939,7 @@ attachEvent = function (node, eventName, fn) {
   }
 };
 
-detachEvent = function (node, eventName, fn) {
+var detachEvent = function (node, eventName, fn) {
   if (node.addEventListener) {
     // Mozilla
     node.removeEventListener(eventName, fn, false);
@@ -984,7 +957,7 @@ detachEvent = function (node, eventName, fn) {
 // Attaches a world-updating handler when the world is changed.
 function add_ev(node, event, f) {
   var eventHandler = function (e) {
-    change_world(function (w, k) {
+    changeWorld(function (w, k) {
       f(w, e, k);
     }, doNothing);
   };
@@ -1000,7 +973,7 @@ function add_ev(node, event, f) {
 function add_ev_after(node, event, f) {
   var eventHandler = function (e) {
     setTimeout(function () {
-      change_world(function (w, k) {
+      changeWorld(function (w, k) {
         f(w, e, k);
       }, doNothing);
     }, 0);
@@ -1026,7 +999,7 @@ function addFocusTracking(node) {
 // WORLD STUFFS
 //
 
-sexp2tree = function (sexp) {
+var sexp2tree = function (sexp) {
   if (sexp.length === undefined) {
     return { node: sexp, children: [] };
   } else {
@@ -1051,7 +1024,7 @@ function sexp2css_node(sexp) {
   }
 }
 
-sexp2css = function (sexp) {
+var sexp2css = function (sexp) {
   return concat_map(sexp, sexp2css_node);
 };
 
@@ -1063,8 +1036,6 @@ function isElementNode(n) {
   return n.nodeType === 1;
 }
 
-var JsworldDomError;
-
 var throwDomError = function (thing, topThing) {
   throw new JsworldDomError(
     "Expected a non-empty array, received " + thing + " within " + topThing,
@@ -1075,7 +1046,7 @@ var throwDomError = function (thing, topThing) {
 // checkDomSexp: X X -> boolean
 // Checks to see if thing is a DOM-sexp.  If not,
 // throws an object that explains why not.
-checkDomSexp = function (thing, topThing) {
+var checkDomSexp = function (thing, topThing) {
   var i;
   if (!thing instanceof Array) {
     throwDomError(thing, topThing);
@@ -1111,7 +1082,7 @@ checkDomSexp = function (thing, topThing) {
   }
 };
 
-JsworldDomError = function (msg, elt) {
+var JsworldDomError = function (msg, elt) {
   this.msg = msg;
   this.elt = elt;
 };
@@ -1143,19 +1114,17 @@ copy_attribs = function (node, attribs) {
 // NODE TYPES
 //
 
-function p(attribs) {
+export function p(attribs) {
   return addFocusTracking(copy_attribs(document.createElement("p"), attribs));
 }
-Jsworld.p = p;
 
-function div(attribs) {
+export function div(attribs) {
   return addFocusTracking(copy_attribs(document.createElement("div"), attribs));
 }
-Jsworld.div = div;
 
 // Used To Be: (world event -> world) (hashof X Y) -> domElement
 // Now: CPS(world event -> world) (hashof X Y) -> domElement
-function button(f, attribs) {
+export function button(f, attribs) {
   var n = document.createElement("button");
   n.onclick = function (e) {
     return false;
@@ -1163,9 +1132,8 @@ function button(f, attribs) {
   add_ev(n, "click", f);
   return addFocusTracking(copy_attribs(n, attribs));
 }
-Jsworld.button = button;
 
-preventDefault = function (event) {
+var preventDefault = function (event) {
   if (event.preventDefault) {
     event.preventDefault();
   } else {
@@ -1173,7 +1141,7 @@ preventDefault = function (event) {
   }
 };
 
-stopPropagation = function (event) {
+var stopPropagation = function (event) {
   if (event.stopPropagation) {
     event.stopPropagation();
   } else {
@@ -1191,7 +1159,7 @@ var stopClickPropagation = function (node) {
 var text_input, checkbox_input;
 
 // input: string CPS(world -> world)
-function input(aType, updateF, attribs) {
+export function input(aType, updateF, attribs) {
   aType = aType.toLowerCase();
   var dispatchTable = {
     text: text_input,
@@ -1207,7 +1175,6 @@ function input(aType, updateF, attribs) {
     throw new Error("js-input: does not currently support type " + aType);
   }
 }
-Jsworld.input = input;
 
 text_input = function (type, updateF, attribs) {
   var n = document.createElement("input");
@@ -1221,7 +1188,7 @@ text_input = function (type, updateF, attribs) {
     setTimeout(function () {
       if (lastVal !== n.value) {
         lastVal = n.value;
-        change_world(function (w, k) {
+        changeWorld(function (w, k) {
           updateF(w, n.value, k);
         }, doNothing);
       }
@@ -1263,17 +1230,14 @@ checkbox_input = function (type, updateF, attribs) {
 //     return addFocusTracking(copy_attribs(n, attribs));
 // };
 
-function text(s, attribs) {
+export function text(s, attribs) {
   var result = document.createElement("div");
   result.appendChild(document.createTextNode(String(s)));
   result.jsworldOpaque = true;
   return result;
 }
-Jsworld.text = text;
 
-var option;
-
-function select(attribs, opts, f) {
+export function select(attribs, opts, f) {
   var n = document.createElement("select"),
     i;
   for (i = 0; i < opts.length; i++) {
@@ -1284,42 +1248,36 @@ function select(attribs, opts, f) {
   var result = addFocusTracking(copy_attribs(n, attribs));
   return result;
 }
-Jsworld.select = select;
 
-option = function (attribs) {
+var option = function (attribs) {
   var node = document.createElement("option");
   node.text = attribs.value;
   node.value = attribs.value;
   return node;
 };
 
-function textarea(attribs) {
+export function textarea(attribs) {
   return addFocusTracking(
     copy_attribs(document.createElement("textarea"), attribs),
   );
 }
-Jsworld.textarea = textarea;
 
-function h1(attribs) {
+export function h1(attribs) {
   return addFocusTracking(copy_attribs(document.createElement("h1"), attribs));
 }
-Jsworld.h1 = h1;
 
-function canvas(attribs) {
+export function canvas(attribs) {
   return addFocusTracking(
     copy_attribs(document.createElement("canvas"), attribs),
   );
 }
-Jsworld.canvas = canvas;
 
-function img(src, attribs) {
+export function img(src, attribs) {
   var n = document.createElement("img");
   n.src = src;
   return addFocusTracking(copy_attribs(n, attribs));
 }
-Jsworld.img = img;
 
-function raw_node(node, attribs) {
+export function rawNode(node, attribs) {
   return addFocusTracking(copy_attribs(node, attribs));
 }
-Jsworld.raw_node = raw_node;
